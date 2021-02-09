@@ -3,3 +3,6 @@
 
 # test files for the solution saving
 *.txt
+
+# vscodes settings
+.vscode/settings.json
