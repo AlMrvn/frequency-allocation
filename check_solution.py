@@ -181,7 +181,7 @@ def type7(G: nx.DiGraph, d: float):
     return res
 
 
-def check(G: nx.DiGraph, thresholds: np.array):
+def check(G: nx.DiGraph, thresholds: np.array, verbose=1):
     """
     Check all the constraint on the graph of solution 
     Args:
@@ -192,11 +192,17 @@ def check(G: nx.DiGraph, thresholds: np.array):
 
     constraints = [type1, type2, type3, type4, type5, type6, type7]
 
+    res = 0
+
     for c, d in zip(constraints, thresholds):
 
         error = list(c(G, d).keys())
         if error != []:
-            print(f"{c.__name__:<8} (min= {d:.03f} GHz) on {error}")
+
+            if verbose > 0:
+                print(f"{c.__name__:<8} (min= {d:.03f} GHz) on {error}")
+            res += 1
+    return res
 
 
 if __name__ == '__main__':

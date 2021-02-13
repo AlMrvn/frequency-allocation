@@ -1,172 +1,225 @@
-#### Yield calculation using MC
+# Yield calculation using a Montecarlo simulation
 
 
 import numpy as np
 import matplotlib.pyplot as plt
+import networkx as nx
+import sys
 
-def generate_sample(target_frequencies: list, sigma: float = 3e-2, Nsample:int = 1000, verbose:int =0):
-    """ Generate a random sample of Nsample of frequency layout
+from check_solution import *
+
+
+def generate_random_sample(arr: np.array,
+                           sigma: float = 3e-2,
+                           Nsamples: int = 1000):
+    """ 
+    Generate a random sample following a normal distrubtion, the variance of the distribution given by the argument sigma.
     Args:
-        target_frequency : list of frequency targeted
+        arr : array of size N
         sigma (float): dispersion of the deviation
         Nsample (int)
     Return:
-        Array of Nqubits x Nsamples
+        Array of N x Nsamples
         """
-    
-    target_frequencies = np.array(target_frequencies, dtype=np.float32)
-    
     # Sample the random distribution
-    frequency_distribution = np.array(np.random.normal(loc=0,scale=1,
-        size=(target_frequencies.shape[0], np.int(Nsamples))),
-        dtype=np.float32)
-    
-    
+    distribution = np.array(np.random.normal(loc=0, scale=1,
+                                             size=(arr.shape[0], np.int(Nsamples))),
+                            dtype=np.float32)
+
     # Scale the frequency distribution
-    frequency_distribution = frequency_distribution*np.float32(sigma)
-    
+    distribution = distribution*np.float32(sigma)
+
     # Add the random numbers to the qubits to get frequencies
-    qubit_frequency_array = target_frequencies[:, np.newaxis]+frequency_distribution
-    
-    return qubit_frequency_array
+    res = arr[:, np.newaxis]+distribution
 
-def shift_array(sampled_array, step:int):
-    """ Shift the array to allow for comparison
-    Todo generalize this for abstract lattice. 
-    This is specific to ring geometry 
-    """
-    #roll the qubit frequencies
-    s = np.roll(sampled_array, step , axis=0)
-
-    return s
-
-def condition_1(sampled_array, sampled_array_shifted, threshold):
-    """ Return a boolean array if the condition is satisfiying 
-     first condition: frequencies of neighboring qubits not equal. 
-    """
-     #### first condition: frequencies of neighboring qubits not equal. 
-
-    test = np.abs(sampled_array-sampled_array_shifted) > np.float32(threshold)
-    
-    #combine test results for all of the qubits yielding Nsamples results
-    test_collapsed = np.all(test,axis=0)
-            
-    return test_collapsed
-
-def condition_2(sampled_array, sampled_array_shifted, threshold):
-    """ Return a boolean array if the condition is satisfiying 
-     first condition: frequencies of neighboring qubits not equal. 
-    """
-     #### first condition: frequencies of neighboring qubits not equal. 
-    test = np.abs(sampled_array-sampled_array_shifted) < np.float32(threshold)
-    
-    #combine test results for all of the qubits yielding Nsamples results
-    test_collapsed = np.all(test,axis=0)
-            
-    return test_collapsed
-
-def mc_sampling(target_frequencies, sigma, anharmonicity, Nsamples, thresholds_nn, thresholds_nnn):
-    
-    # generate the sampmple
-    sample = generate_sample(target_frequencies, sigma, Nsamples)
-    
-    # Shift need for the comparisons
-    sample_s1 = shift_array(sample, step=1)
-    
-    #### first condition: frequencies of neighboring qubits not equal. 
-    result = condition_1(sample, sample_s1, thresholds_nn['01n01'])
-
-    #### second condition: don't want degeneracy between ge and ef of neighbor
-    res = condition_1(sample+anharmonicity, sample_s1, thresholds_nn['01n12'])
-    result = np.bitwise_and(result, res)
-    
-    res = condition_1(sample_s1+anharmonicity, sample, thresholds_nn['01n12'])
-    result = np.bitwise_and(result, res)
-    
-    #third condition: don't have degeneracy of qubit with two-photon transition of neighbor.
-    res = condition_1(sample+anharmonicity/2, sample_s1, thresholds_nn['01n02o2'])
-    result = np.bitwise_and(result, res)
-    
-    res = condition_1(sample_s1+anharmonicity/2, sample, thresholds_nn['01n02o2'])
-    result = np.bitwise_and(result, res)
-
-    # fourth condition: don't want detuning larger than anharmonicity to avoid a slow gate. 
-    res = condition_2(sample_s1, sample, threshold= np.abs(anharmonicity))
-    result = np.bitwise_and(result, res)
-
-    # fifth condition: don't want ge transitions of next nearest neighbors to be degenerate.
-    sample_s2 = shift_array(sample, step=2)
-    
-    res = condition_1(sample, sample_s2, thresholds_nnn['01n01'])
-    result = np.bitwise_and(result, res)
-    
-    # six: 01 nnn 12
-    res = condition_1(sample+anharmonicity, sample_s2, thresholds_nnn['01n12'])
-    result = np.bitwise_and(result, res)
-    
-    res = condition_1(sample_s2+anharmonicity, sample, thresholds_nnn['01n12'])
-    result = np.bitwise_and(result, res)
-    
-    return result, sample
+    return res
 
 
-### Yield MC simulation
-# constraint now include the nnn neigbhors
-scaling = 0.8
+# construct the checking functions
+# The following function construct the constraint
 
-constraint_nn = {
-    '01n01': 75*scaling,
-    '01n12': 30*scaling,
-    '01n02o2': 10*scaling,
-}
+def construct_constraint_function(G,
+                                  freqs_distribution,
+                                  alpha_distribution,
+                                  d):
+    """ 
+    Create the list of functions and index where the constraint are tested.
+    Args:
+        G (nx.Digraph) : Directional graph of the layout
+        freqs_distribution(np.array): distribution of frequencys
+        alpha_distribution(np.array): distribution of anharmonicity
+        d(np.arrya): threshold for the constraints
+    Return:
+        Array of N x Nsamples
+        """
+    idx_list = []
+    expr_list = []
 
-constraint_nnn = {
-    '01n01': 45*scaling,
-    '01n12': 15*scaling,
-    '01n02o2': 10*scaling,
-}
+    # type 1
+    idx = [(i, j) for i, j in G.edges]
 
-# Input frequency
-# freqs = [0, 115, 195, 345, 230, 165]
-freqs = np.array([ 243.75,   62.5 , -118.75, -243.75,  -62.5 ,  118.75])
-# freqs = np.array([ 209.375,   28.125, -153.125, -334.375, -209.375,  -28.125,   153.125,  334.375])
+    def expr(i, j): return abs(
+        freqs_distribution[i, :] - freqs_distribution[j, :]) > d[0]
 
-anharmonicity = -275
-### end parameters
-Nsamples=1e4
-sigma=10
+    idx_list.append(idx)
+    expr_list.append(expr)
 
-# initialization
-# freqs[3] +=15
+    # type 2
+    idx = [(i, j) for i, j in G.edges] + [(j, i) for i, j in G.edges]
+
+    def expr(i, j): return abs(
+        freqs_distribution[i, :] - freqs_distribution[j, :]-alpha_distribution[j, :]) > d[1]
+
+    idx_list.append(idx)
+    expr_list.append(expr)
+
+    # type 3
+    idx = [(i, j) for i, j in G.edges]
+
+    def expr(i, j): return abs(
+        freqs_distribution[j, :] - freqs_distribution[i, :]-alpha_distribution[i, :]/2) > d[2]
+
+    idx_list.append(idx)
+    expr_list.append(expr)
+
+    # type 4
+    idx = [(i, j) for i, j in G.edges]
+    def expr(i, j): return freqs_distribution[i, :] + \
+        alpha_distribution[i, :] < freqs_distribution[j, :]
+
+    idx_list.append(idx)
+    expr_list.append(expr)
+
+    # type 4'
+    idx = [(i, j) for i, j in G.edges]
+    def expr(i, j): return freqs_distribution[i, :] > freqs_distribution[j, :]
+
+    idx_list.append(idx)
+    expr_list.append(expr)
+
+    # type 5
+    idx = []
+    for i, j in G.edges:
+        control_neighbhors = list(nx.all_neighbors(G, i))
+        control_neighbhors.remove(j)  # remnoving the target
+        for k in control_neighbhors:
+            idx.append((i, j, k))
+
+    def expr(i, j, k): return abs(
+        freqs_distribution[j, :] - freqs_distribution[k, :]) > d[4]
+
+    idx_list.append(idx)
+    expr_list.append(expr)
+
+    # type 6
+    idx = []
+    for i, j in G.edges:
+        control_neighbhors = list(nx.all_neighbors(G, i))
+        control_neighbhors.remove(j)  # remnoving the target
+        for k in control_neighbhors:
+            idx.append((i, j, k))
+
+    def expr(i, j, k): return abs(
+        freqs_distribution[j, :] - freqs_distribution[k, :]-alpha_distribution[k, :]) > d[5]
+
+    idx_list.append(idx)
+    expr_list.append(expr)
+
+    # type 7
+    idx = []
+    for i, j in G.edges:
+        control_neighbhors = list(nx.all_neighbors(G, i))
+        control_neighbhors.remove(j)  # remnoving the target
+        for k in control_neighbhors:
+            idx.append((i, j, k))
+
+    def expr(i, j, k): return abs(
+        2*freqs_distribution[i, :]+alpha_distribution[i, :] - freqs_distribution[j, :] - freqs_distribution[k, :]) > d[6]
+
+    idx_list.append(idx)
+    expr_list.append(expr)
+
+    return idx_list, expr_list
 
 
-s_vec = np.linspace(1e-1, 100, 101)
-r_vec = np.zeros_like(s_vec)
-for k, sigma in enumerate(s_vec):
-    r,l = mc_sampling(freqs, sigma, anharmonicity, Nsamples,constraint_nn, constraint_nnn)
-    r_vec[k] = len([x for x in r if x])/Nsamples
+if __name__ == '__main__':
 
-fig, ax = plt.subplots()
+    fname = sys.argv[1]
 
-ax.plot(s_vec, r_vec, label='6Q ring')
+    # extracting the data
+    freqs, a, d = extract_solution(fname)
 
-ax.set_xlabel(r' Frequency dispersion $\sigma$ (MHz)')
-ax.set_ylabel(r'Yield')
-ax.set_title('Monte Carlo yield per Waffer: N-transmon ring')
-ax.set_yscale('log')
+    # construct the graph. here we suppose a 10 nodes graph with a specific Control-target geometry
+    G = nx.DiGraph()
+    G.add_edges_from([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5),
+                      (6, 5), (7, 6), (8, 7), (9, 8), (0, 9)])
+    for k, n in enumerate(G.nodes):
+        G.nodes[n]['freq'] = freqs[k]
+        G.nodes[n]['a'] = a[k]
 
-ax.axhline(1/64, color='k', ls='--', alpha=0.5)
-ax.text(90, 1/64+0.005, '1/64')
-ax.axhline(1/64/2, color='k', ls='--', alpha=0.5)
-ax.text(90, 1/64/2+0.001, '1/128')
-ax.axhline(1/4, color='k', ls='--', alpha=0.5)
-ax.text(90, 0.3, '16/64')
-ax.set_ylim(1e-3, 1.1)
-ax.set_xlim(0, 100)
+    # checking the solution
+    check(G, d)
 
+    # construct the graph
+    target_frequencies = np.array([G.nodes[n]['freq']
+                                   for n in G.nodes], dtype=np.float32)
+    target_alpha = np.array([G.nodes[n]['a']
+                             for n in G.nodes], dtype=np.float32)
 
-ax.text(5, 4.5e-3, f'$\sigma = 40$ MHz')
-ax.text(5, 3e-3, f'6Q: {round(r_vec[40]*64)}/wafer')
+    # Plot the yield
+    # N_samples
+    Nsamples = 100000
 
-ax.legend()
-plt.show()
+    # varying the dispersion of the frequency
+    s_vec = np.linspace(0, 0.1, 41)
+
+    # let say the alpha dispersion is small
+    s_alpha = 0.005
+
+    # saving the results
+    collisions = np.zeros((len(s_vec), Nsamples))
+
+    # loop through sigma
+    for i_s, s in enumerate(s_vec):
+
+        freqs_distribution = generate_random_sample(
+            target_frequencies, sigma=s,       Nsamples=Nsamples)
+        alpha_distribution = generate_random_sample(
+            target_alpha,       sigma=s_alpha, Nsamples=Nsamples)
+
+        idx_list, expr_list = construct_constraint_function(
+            G, freqs_distribution, alpha_distribution, d)
+
+        c = []
+        for idx, expr in zip(idx_list, expr_list):
+            for i in idx:
+                c.append(expr(*i))
+        c = np.array(c)
+        # counting the tiime where all the conditions are no validated
+        collisions[i_s, :] = np.sum(~c, axis=0)
+
+    n_collisions = [0, 1, 2, 3, 5, 10]
+    y = [(Nsamples-np.count_nonzero(collisions-n, axis=1)) /
+         Nsamples for n in n_collisions]
+
+    fig, ax = plt.subplots()
+    for i in range(len(n_collisions)):
+        ax.plot(s_vec*1e3, y[i], label=f'{n_collisions[i]} collisions')
+
+    # 1/64 limit
+    ax.axhline(1/64, ls='--', color='Gray')
+    ax.text(60, 1/64+0.01, '1 Chip per waffer', fontsize=12)
+
+    ax.axvline(15, ls='-.', color='Gray')
+    ax.text(16, 0.8, 'IBM laser')
+    ax.axvline(50, ls='--', color='Gray')
+    ax.text(51, 0.8, 'Berkeley FAB')
+    # Legend and labels
+    ax.set_ylabel(f'Yield')
+    ax.set_xlabel('Frequency dispersion $\sigma_f$ (MHz)')
+    ax.set_yscale('log')
+    ax.set_title('Yield for collision free sample')
+    ax.legend(ncol=2, fontsize=8, loc=8)
+
+    ax.set_xlim(0, 100)
+    fig.savefig('Yield.pdf')
