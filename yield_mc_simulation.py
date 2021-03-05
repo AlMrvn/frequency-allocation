@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import sys
 
-from check_solution import *
-
 
 def generate_random_sample(arr: np.array,
                            sigma: float = 3e-2,
@@ -20,23 +18,22 @@ def generate_random_sample(arr: np.array,
         Nsample (int)
     Return:
         Array of N x Nsamples
-        """
+    """
     # Sample the random distribution
     distribution = np.array(np.random.normal(loc=0, scale=1,
                                              size=(arr.shape[0], np.int(Nsamples))),
                             dtype=np.float32)
 
     # Scale the frequency distribution
-    distribution = distribution*np.float32(sigma)
+    distribution = distribution * np.float32(sigma)
 
     # Add the random numbers to the qubits to get frequencies
-    res = arr[:, np.newaxis]+distribution
+    res = arr[:, np.newaxis] + distribution
 
     return res
 
 
-# construct the checking functions
-# The following function construct the constraint
+# construct the checking functions. This only work for the CR qubit
 
 def construct_constraint_function(G,
                                   freqs_distribution,
@@ -58,8 +55,8 @@ def construct_constraint_function(G,
     # type 1
     idx = [(i, j) for i, j in G.edges]
 
-    def expr(i, j): return abs(
-        freqs_distribution[i, :] - freqs_distribution[j, :]) > d[0]
+    def expr(i, j):
+        return abs(freqs_distribution[i, :] - freqs_distribution[j, :]) > d[0]
 
     idx_list.append(idx)
     expr_list.append(expr)
@@ -67,8 +64,9 @@ def construct_constraint_function(G,
     # type 2
     idx = [(i, j) for i, j in G.edges] + [(j, i) for i, j in G.edges]
 
-    def expr(i, j): return abs(
-        freqs_distribution[i, :] - freqs_distribution[j, :]-alpha_distribution[j, :]) > d[1]
+    def expr(i, j): return
+    abs(freqs_distribution[i, :] - freqs_distribution[j,
+                                                      :]-alpha_distribution[j, :]) > d[1]
 
     idx_list.append(idx)
     expr_list.append(expr)
