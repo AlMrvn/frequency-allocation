@@ -36,15 +36,15 @@ def generate_random_sample(arr: np.array,
 # construct the checking functions. This only work for the CR qubit
 
 def construct_constraint_function(G,
-                                  freqs_distribution,
-                                  alpha_distribution,
+                                  freqs,
+                                  alpha,
                                   d):
     """ 
     Create the list of functions and index where the constraint are tested.
     Args:
         G (nx.Digraph) : Directional graph of the layout
-        freqs_distribution(np.array): distribution of frequencys
-        alpha_distribution(np.array): distribution of anharmonicity
+        freqs(np.array): distribution of frequencys
+        alpha(np.array): distribution of anharmonicity
         d(np.arrya): threshold for the constraints
     Return:
         Array of N x Nsamples
@@ -56,7 +56,7 @@ def construct_constraint_function(G,
     idx = [(i, j) for i, j in G.edges]
 
     def expr(i, j):
-        return abs(freqs_distribution[i, :] - freqs_distribution[j, :]) > d[0]
+        return abs(freqs[i, :] - freqs[j, :]) > d[0]
 
     idx_list.append(idx)
     expr_list.append(expr)
@@ -64,9 +64,8 @@ def construct_constraint_function(G,
     # type 2
     idx = [(i, j) for i, j in G.edges] + [(j, i) for i, j in G.edges]
 
-    def expr(i, j): return
-    abs(freqs_distribution[i, :] - freqs_distribution[j,
-                                                      :]-alpha_distribution[j, :]) > d[1]
+    def expr(i, j):
+        return abs(freqs[i, :] - freqs[j, :] - alpha[j, :]) > d[1]
 
     idx_list.append(idx)
     expr_list.append(expr)
@@ -75,22 +74,22 @@ def construct_constraint_function(G,
     idx = [(i, j) for i, j in G.edges]
 
     def expr(i, j): return abs(
-        freqs_distribution[j, :] - freqs_distribution[i, :]-alpha_distribution[i, :]/2) > d[2]
+        freqs[j, :] - freqs[i, :]-alpha[i, :]/2) > d[2]
 
     idx_list.append(idx)
     expr_list.append(expr)
 
     # type 4
     idx = [(i, j) for i, j in G.edges]
-    def expr(i, j): return freqs_distribution[i, :] + \
-        alpha_distribution[i, :] < freqs_distribution[j, :]
+    def expr(i, j): return freqs[i, :] + \
+        alpha[i, :] < freqs[j, :]
 
     idx_list.append(idx)
     expr_list.append(expr)
 
     # type 4'
     idx = [(i, j) for i, j in G.edges]
-    def expr(i, j): return freqs_distribution[i, :] > freqs_distribution[j, :]
+    def expr(i, j): return freqs[i, :] > freqs[j, :]
 
     idx_list.append(idx)
     expr_list.append(expr)
@@ -104,7 +103,7 @@ def construct_constraint_function(G,
             idx.append((i, j, k))
 
     def expr(i, j, k): return abs(
-        freqs_distribution[j, :] - freqs_distribution[k, :]) > d[4]
+        freqs[j, :] - freqs[k, :]) > d[4]
 
     idx_list.append(idx)
     expr_list.append(expr)
@@ -118,7 +117,7 @@ def construct_constraint_function(G,
             idx.append((i, j, k))
 
     def expr(i, j, k): return abs(
-        freqs_distribution[j, :] - freqs_distribution[k, :]-alpha_distribution[k, :]) > d[5]
+        freqs[j, :] - freqs[k, :]-alpha[k, :]) > d[5]
 
     idx_list.append(idx)
     expr_list.append(expr)
@@ -132,7 +131,7 @@ def construct_constraint_function(G,
             idx.append((i, j, k))
 
     def expr(i, j, k): return abs(
-        2*freqs_distribution[i, :]+alpha_distribution[i, :] - freqs_distribution[j, :] - freqs_distribution[k, :]) > d[6]
+        2*freqs[i, :]+alpha[i, :] - freqs[j, :] - freqs[k, :]) > d[6]
 
     idx_list.append(idx)
     expr_list.append(expr)
@@ -182,11 +181,11 @@ if __name__ == '__main__':
 
         freqs_distribution = generate_random_sample(
             target_frequencies, sigma=s,       Nsamples=Nsamples)
-        alpha_distribution = generate_random_sample(
+        alpha = generate_random_sample(
             target_alpha,       sigma=s_alpha, Nsamples=Nsamples)
 
         idx_list, expr_list = construct_constraint_function(
-            G, freqs_distribution, alpha_distribution, d)
+            G, freqs_distribution, alpha, d)
 
         c = []
         for idx, expr in zip(idx_list, expr_list):
