@@ -32,7 +32,8 @@ def extract_solution(fname: str):
     a = np.array([float(a[k].split()[2]) for k in range(len(a))])
 
     # thresholds
-    d = x[i_d:].split("\n")[4:-3]
+    d = x[i_d:].split("\n")[4:]
+    d = [dd for dd in d if dd != '']
     d = np.array([float(d[k].split()[1]) for k in range(len(d))])
 
     # taking care of the type 4 that don't have threshold
