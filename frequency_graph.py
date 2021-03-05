@@ -14,8 +14,8 @@ class FrequencyGraph(nx.DiGraph):
         self.add_edges_from(edges)
 
         # add the frequencies
-        for k, n in enumerate(G.nodes):
-            self.nodes[n]['freq'] = freqs[k]
+        for k, n in enumerate(self.nodes):
+            self.nodes[n]['freq'] = frequencies[k]
             self.nodes[n]['a'] = anharmocity[k]
 
     def plot(self, fig=None, ax=None):
