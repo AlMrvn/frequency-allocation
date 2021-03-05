@@ -1,5 +1,7 @@
 /.ipynb_checkpoints
 /__pycache__
+/solutions
+/.vscode
 
 # test files for the solution saving
 *.txt
