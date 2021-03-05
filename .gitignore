@@ -3,6 +3,9 @@
 
 # test files for the solution saving
 *.txt
+*.pdf
 
 # vscodes settings
 .vscode/settings.json
+
+.DS_Store
