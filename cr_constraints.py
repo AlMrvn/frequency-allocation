@@ -1,16 +1,13 @@
-"""
-List of the constraint for a CR architecture
-Each function defined here are a constraint on the CR architecture
-"""
+""" List of the constraint for a CR architecture """
 
-import networkx ax nx
-from frequency_graph import FrequencyGraph
+import networkx as nx
+import numpy as np
 
 
-def type1(G: FrequencyGraph, d: float) -> bool:
+def type1(G: nx.DiGraph, d: float) -> bool:
     """ Type 1 constraint
     Args:
-        G (FrequencyGraph) : Directional graph of the layout
+        G (nx.Digraph) : Directional graph of the layout
         d (float): threshold
     """
 
@@ -25,7 +22,7 @@ def type1(G: FrequencyGraph, d: float) -> bool:
     return res
 
 
-def type2(G: FrequencyGraph, d: float) -> bool:
+def type2(G: nx.DiGraph, d: float) -> bool:
     """ Type 2 constraint
     Args:
         G (nx.Digraph) : Directional graph of the layout
@@ -49,7 +46,7 @@ def type2(G: FrequencyGraph, d: float) -> bool:
     return res
 
 
-def type3(G: FrequencyGraph, d: float) -> bool:
+def type3(G: nx.DiGraph, d: float) -> bool:
     """ Type 3 constraint
     Args:
         G (nx.Digraph) : Directional graph of the layout
@@ -66,7 +63,7 @@ def type3(G: FrequencyGraph, d: float) -> bool:
     return res
 
 
-def type4(G: FrequencyGraph, d: float) -> bool:
+def type4(G: nx.DiGraph, d: float) -> bool:
     """ Type 4 constraint
     Args:
         G (nx.Digraph) : Directional graph of the layout
@@ -88,7 +85,7 @@ def type4(G: FrequencyGraph, d: float) -> bool:
     return res
 
 
-def type5(G: FrequencyGraph d: float):
+def type5(G: nx.DiGraph, d: float):
 
     res = {}
 
@@ -106,7 +103,7 @@ def type5(G: FrequencyGraph d: float):
     return res
 
 
-def type6(G: FrequencyGraph, d: float):
+def type6(G: nx.DiGraph, d: float):
 
     res = {}
 
@@ -125,7 +122,7 @@ def type6(G: FrequencyGraph, d: float):
     return res
 
 
-def type7(G: FrequencyGraph, d: float):
+def type7(G: nx.DiGraph, d: float):
 
     res = {}
 
