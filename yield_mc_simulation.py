@@ -6,6 +6,44 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import sys
 
+global_constraints = {
+    'A1': "abs(freqs[i] - freqs[j]) > d['A1']",
+    'A2i': "abs(freqs[i] - freqs[j] - alpha[j]) > d['A2i']",
+    'A2j': "abs(freqs[j] - freqs[i] - alpha[i]) > d['A2j']",
+    'E1': "abs(drive[e] - freqs[i]) > d['E1']",
+    'E1t': "abs(drive[e] - freqs[j]) > d['E1t']",
+    'E2':    "abs(drive[e] - freqs[i]-alpha[i]) > d['E2']",
+    'E2t':    "abs(drive[e] - freqs[j]-alpha[j]) > d['E2t']",
+    'E4':    "abs(drive[e] - freqs[i] - alpha[i]/2) > d['E4']",
+    'E4t':    "abs(drive[e] - freqs[j] - alpha[j]/2) > d['E4t']",
+    'C1':    "freqs[i] + alpha[i] < drive[e]",
+    'C1b':    "freqs[i] > drive[e] ",
+    'C2':    "freqs[j] + alpha[j] < drive[e]",
+    'C2b':   "freqs[j] > drive[e] ",
+    'F1':    "abs(drive[e] - freqs[k]) > d['F1']",
+    'F2':    "abs(drive[e] - freqs[k] - alpha[k]) > d['F2']",
+    'M1':    "abs(drive[e] + freqs[k] - 2*freqs[i] - alpha[i]) > d['M1']"
+}
+
+global_idx_list = {
+    'A1':  "G.oriented_edge_index",
+    'A2i':  "G.oriented_edge_index",
+    'A2j':  "G.oriented_edge_index",
+    'E1':   "G.oriented_edge_index",
+    'E1t':  "G.oriented_edge_index",
+    'E2':   "G.oriented_edge_index",
+    'E2t':  "G.oriented_edge_index",
+    'E4':   "G.oriented_edge_index",
+    'E4t':  "G.oriented_edge_index",
+    'C1':    "G.oriented_edge_index",
+    'C1b':   "G.oriented_edge_index",
+    'C2':    "G.oriented_edge_index",
+    'C2b':   "G.oriented_edge_index",
+    'F1':    "G.cr_neighbhors",
+    'F2':    "G.cr_neighbhors",
+    'M1':    "G.cr_neighbhors"
+}
+
 
 def generate_random_sample(arr: np.array,
                            sigma: float = 3e-2,
@@ -33,12 +71,22 @@ def generate_random_sample(arr: np.array,
     return res
 
 
+def functionalize(constr, freqs, alpha, d, drive, qutrit=False):
+    def expr(i, j, k=None):
+        return eval(constr, {"freqs": freqs,
+                             "alpha": alpha,
+                             "d": d,
+                             "i": i,
+                             "j": j,
+                             "k": k,
+                             "e": (i, j),
+                             "drive": drive})
+    return expr
+
 # construct the checking functions. This only work for the CR qubit
 
-def construct_constraint_function(G,
-                                  freqs,
-                                  alpha,
-                                  d):
+
+def construct_constraint_function(G, freqs, alpha, d, qutrit=False, cstr=None):
     """ 
     Create the list of functions and index where the constraint are tested.
     Args:
@@ -49,92 +97,38 @@ def construct_constraint_function(G,
     Return:
         Array of N x Nsamples
         """
-    idx_list = []
-    expr_list = []
 
-    # type 1
-    idx = [(i, j) for i, j in G.edges]
+    # Constructing the list of index for the constraints
+    if cstr is None:
+        cstr = list(global_constraints.keys())
+    idx_list = [eval(global_idx_list[key], {"G": G}) for key in cstr]
+    constraints = [global_constraints[key] for key in cstr]
 
-    def expr(i, j):
-        return abs(freqs[i, :] - freqs[j, :]) > d[0]
+    # Qutrit case:
+    if qutrit:
+        idx_list += [
+            G.oriented_edge_index,
+            G.unoriented_edge_index,
+            G.oriented_edge_index,
+            G.cr_neighbhors,
+            G.cr_neighbhors,
+            G.cr_neighbhors
+        ]
+        constraints += [
+            "abs(freqs[i] + alpha[i] - freqs[j]) > d[0]",
+            "abs(freqs[i] + alpha[i] - freqs[j] - alpha[j]) > d[1]",
+            "abs(freqs[i] + alpha[i] - freqs[j] - 2 * alpha[j]) > d[1]",
+            "abs(freqs[j] + alpha[j] - freqs[i] - alpha[i]/2) > d[2]",
+            "abs(freqs[j] + alpha[j] - freqs[k]) > d[4]",
+            "abs(freqs[j] + alpha[j] - freqs[k] - alpha[k]) > d[5]",
+            "abs(freqs[j] + alpha[j] - freqs[k] - 2*alpha[k]) > d[5]",
+        ]
 
-    idx_list.append(idx)
-    expr_list.append(expr)
+    # constraitn as functions:
+    drive = {e: G.edges[e]['drive'] for e in G.edges}
 
-    # type 2
-    idx = [(i, j) for i, j in G.edges] + [(j, i) for i, j in G.edges]
-
-    def expr(i, j):
-        return abs(freqs[i, :] - freqs[j, :] - alpha[j, :]) > d[1]
-
-    idx_list.append(idx)
-    expr_list.append(expr)
-
-    # type 3
-    idx = [(i, j) for i, j in G.edges]
-
-    def expr(i, j): return abs(
-        freqs[j, :] - freqs[i, :]-alpha[i, :]/2) > d[2]
-
-    idx_list.append(idx)
-    expr_list.append(expr)
-
-    # type 4
-    idx = [(i, j) for i, j in G.edges]
-    def expr(i, j): return freqs[i, :] + \
-        alpha[i, :] < freqs[j, :]
-
-    idx_list.append(idx)
-    expr_list.append(expr)
-
-    # type 4'
-    idx = [(i, j) for i, j in G.edges]
-    def expr(i, j): return freqs[i, :] > freqs[j, :]
-
-    idx_list.append(idx)
-    expr_list.append(expr)
-
-    # type 5
-    idx = []
-    for i, j in G.edges:
-        control_neighbhors = list(nx.all_neighbors(G, i))
-        control_neighbhors.remove(j)  # remnoving the target
-        for k in control_neighbhors:
-            idx.append((i, j, k))
-
-    def expr(i, j, k): return abs(
-        freqs[j, :] - freqs[k, :]) > d[4]
-
-    idx_list.append(idx)
-    expr_list.append(expr)
-
-    # type 6
-    idx = []
-    for i, j in G.edges:
-        control_neighbhors = list(nx.all_neighbors(G, i))
-        control_neighbhors.remove(j)  # remnoving the target
-        for k in control_neighbhors:
-            idx.append((i, j, k))
-
-    def expr(i, j, k): return abs(
-        freqs[j, :] - freqs[k, :]-alpha[k, :]) > d[5]
-
-    idx_list.append(idx)
-    expr_list.append(expr)
-
-    # type 7
-    idx = []
-    for i, j in G.edges:
-        control_neighbhors = list(nx.all_neighbors(G, i))
-        control_neighbhors.remove(j)  # remnoving the target
-        for k in control_neighbhors:
-            idx.append((i, j, k))
-
-    def expr(i, j, k): return abs(
-        2*freqs[i, :]+alpha[i, :] - freqs[j, :] - freqs[k, :]) > d[6]
-
-    idx_list.append(idx)
-    expr_list.append(expr)
+    expr_list = [functionalize(constr, freqs, alpha, d, drive)
+                 for constr in constraints]
 
     return idx_list, expr_list
 
