@@ -139,6 +139,8 @@ class FrequencyGraph(nx.DiGraph):
             qutrit=qutrit,
             cstr=cstr)
 
+        idx_len = [len(idx) for idx in idx_list]
+
         # Count the numer of collisions
         c = []
         for idx, expr in zip(idx_list, expr_list):
@@ -146,4 +148,4 @@ class FrequencyGraph(nx.DiGraph):
                 c.append(expr(*i))
 
         # counting the tiime where all the conditions are no validated
-        return np.sum(~np.array(c), axis=0)
+        return np.sum(~np.array(c), axis=0), c, idx_len

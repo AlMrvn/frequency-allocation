@@ -2,6 +2,7 @@
 /__pycache__
 /solutions
 /.vscode
+/Notebook
 
 # test files for the solution saving
 *.txt

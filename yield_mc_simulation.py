@@ -1,5 +1,7 @@
-# Yield calculation using a Montecarlo simulation
-
+"""
+Yield calculation using a Montecarlo simulation
+In this file, I define the global constraint by using the nomencalture define in the article. I also define the type of index they live on
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,7 +51,7 @@ def generate_random_sample(arr: np.array,
                            sigma: float = 3e-2,
                            Nsamples: int = 1000):
     """ 
-    Generate a random sample following a normal distrubtion, the variance of the distribution given by the argument sigma.
+    Generate a random sample following a normal distribution, the variance of the distribution given by the argument sigma.
     Args:
         arr : array of size N
         sigma (float): dispersion of the deviation
@@ -91,9 +93,9 @@ def construct_constraint_function(G, freqs, alpha, d, qutrit=False, cstr=None):
     Create the list of functions and index where the constraint are tested.
     Args:
         G (nx.Digraph) : Directional graph of the layout
-        freqs(np.array): distribution of frequencys
-        alpha(np.array): distribution of anharmonicity
-        d(np.arrya): threshold for the constraints
+        freqs (np.array): distribution of frequencys
+        alpha (np.array): distribution of anharmonicity
+        d (np.arrya): threshold for the constraints
     Return:
         Array of N x Nsamples
         """
@@ -106,23 +108,7 @@ def construct_constraint_function(G, freqs, alpha, d, qutrit=False, cstr=None):
 
     # Qutrit case:
     if qutrit:
-        idx_list += [
-            G.oriented_edge_index,
-            G.unoriented_edge_index,
-            G.oriented_edge_index,
-            G.cr_neighbhors,
-            G.cr_neighbhors,
-            G.cr_neighbhors
-        ]
-        constraints += [
-            "abs(freqs[i] + alpha[i] - freqs[j]) > d[0]",
-            "abs(freqs[i] + alpha[i] - freqs[j] - alpha[j]) > d[1]",
-            "abs(freqs[i] + alpha[i] - freqs[j] - 2 * alpha[j]) > d[1]",
-            "abs(freqs[j] + alpha[j] - freqs[i] - alpha[i]/2) > d[2]",
-            "abs(freqs[j] + alpha[j] - freqs[k]) > d[4]",
-            "abs(freqs[j] + alpha[j] - freqs[k] - alpha[k]) > d[5]",
-            "abs(freqs[j] + alpha[j] - freqs[k] - 2*alpha[k]) > d[5]",
-        ]
+        print("Not implemented yet")
 
     # constraitn as functions:
     drive = {e: G.edges[e]['drive'] for e in G.edges}
