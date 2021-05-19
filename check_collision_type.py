@@ -27,10 +27,14 @@ if __name__ == '__main__':
             a.append(float(row[1]))
     a = np.array(a)
 
+    edge_list = []
+
     freqs_d = []
     with open(path + 'drive_freqs.csv', 'r') as file:
         reader = csv.reader(file)
         for row in reader:
+            edge = (int(row[0][1:]), int(row[1][:-1]))
+            edge_list.append(edge)
             freqs_d.append(float(row[-1]))
     freqs_d = np.array(freqs_d)
 
@@ -38,8 +42,7 @@ if __name__ == '__main__':
     d = np.array([0.017, 0.03, 0.03, 0.017, 0.03, 0.002, 0.017, 0.025, 0.017])
 
     # graph definition
-    G = FrequencyGraph([(0, 1), (1, 2), (2, 3), (4, 3),
-                        (5, 4), (0, 5)], freqs, a, f_drive=freqs_d, cz=False)
+    G = FrequencyGraph(edge_list, freqs, a, f_drive=freqs_d, cz=False)
 
     # key definition
     keys = ['A1', 'A2i', 'A2j', "E1", "E2", "E4", "F1", "F2", "M1"]
