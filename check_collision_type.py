@@ -13,6 +13,18 @@ if __name__ == '__main__':
 
     path = sys.argv[1]
 
+    if len(sys.argv) > 2:
+        sigma = sys.argv[2]
+    else:
+        print("dispersion sigma set to default = 0.05 GHz")
+        sigma = 0.05
+
+    if len(sys.argv) > 3:
+        Nsample = sys.argv[3]
+    else:
+        print("Sampling for collision set to default = 10 000")
+        Nsample = 10000
+
     freqs = []
     with open(path + 'freqs.csv', 'r') as file:
         reader = csv.reader(file)
@@ -44,6 +56,8 @@ if __name__ == '__main__':
     # graph definition
     G = FrequencyGraph(edge_list, freqs, a, f_drive=freqs_d, cz=False)
 
+    G.check_constraint(d, qutrit=False)
+
     # key definition
     keys = ['A1', 'A2i', 'A2j', "E1", "E2", "E4", "F1", "F2", "M1"]
     d_dict = {k: dd for (k, dd) in zip(keys, d)}
@@ -57,9 +71,11 @@ if __name__ == '__main__':
 
     # plot of the yield
     ax = axs[0]
-    collisions, c, idx_len = G.get_collision(
-        d_dict, sigma=0.05, qutrit=False, cstr=cstr_key)
-    ax.hist(collisions, bins=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], density=True)
+    collisions, c, idx_list, constraints = G.get_collision(
+        d_dict, sigma=sigma, qutrit=False, cstr=cstr_key, Nsamples=Nsample)
+    ax.hist(collisions, density=True)
+
+    idx_len = [len(idx) for idx in idx_list]
 
     # legend
     ax.set_xlabel("Number of collision")
@@ -75,7 +91,8 @@ if __name__ == '__main__':
     c = np.array(c)
     cc = np.sum(~np.array(c), axis=1)
     v = [sum(idx_len[:k]) for k in range(len(idx_len)+1)]
-    col = np.array([np.mean(cc[v[i]: v[i+1]]) for i in range(len(v)-1)])/10000
+    col = np.array([np.mean(cc[v[i]: v[i+1]])
+                    for i in range(len(v)-1)])/Nsample
 
     ax.bar(np.arange(11), col)
     ax.set_xticks(np.arange(11))
