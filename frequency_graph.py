@@ -30,6 +30,10 @@ class FrequencyGraph(nx.DiGraph):
 
         nx.draw(self, with_labels=True, font_weight='bold')
 
+    # def check_cr(self):
+    #     """ check if the frequency drives are compatible with a CR drive type"""
+    #     for
+
     def check_constraint(self, thresholds: np.array, verbose=1, qutrit=False):
         """
         Check all the constraint on the graph of solution
@@ -39,7 +43,7 @@ class FrequencyGraph(nx.DiGraph):
         Returns:
             number_of_error (int) number of non satisfied constraints
         """
-        constraints = [type1, type2, type3, type4, type5, type6, type7]
+        constraints = [type_A1, type_A2, type3, type4, type5, type6, type7]
         if qutrit:
             constraints.extend([type1b, type2b, type2c,
                                 type3b, type5b, type6b, type6c])
