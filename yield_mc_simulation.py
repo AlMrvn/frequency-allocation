@@ -116,7 +116,7 @@ def construct_constraint_function(G, freqs, alpha, d, qutrit=False, cstr=None):
     expr_list = [functionalize(constr, freqs, alpha, d, drive)
                  for constr in constraints]
 
-    return idx_list, expr_list
+    return idx_list, expr_list, constraints
 
 
 if __name__ == '__main__':

@@ -9,30 +9,44 @@ from yield_mc_simulation import *
 
 class FrequencyGraph(nx.DiGraph):
 
-    def __init__(self, edges, frequencies, anharmocity, f_drive=None, cz=False):
+    def __init__(self, edges, frequencies, anharmonicity, f_drive=None, cz=False):
         # init the Digraph
         nx.DiGraph.__init__(self)
 
         # add the nodes to the graph:
         self.add_edges_from(edges)
 
-        # add the frequencies
-        for k, n in enumerate(self.nodes):
-            self.nodes[n]['freq'] = frequencies[k]
-            self.nodes[n]['a'] = anharmocity[k]
-        for e, fd in zip(self.edges, f_drive):
+        # add the frequencies. We cannot enumerate the nodes as add_edge changes the order
+        for k in range(len(self.nodes)):
+            self.nodes[k]['freq'] = frequencies[k]
+            self.nodes[k]['a'] = anharmonicity[k]
+
+        # add the driving
+        for e, fd in zip(edges, f_drive):
             self.edges[e]['drive'] = fd
 
         self.cz = cz
 
+        if not self.cz:
+            self.check_cr()
+
     def plot(self, fig=None, ax=None):
         """ Draw the Graph """
-
         nx.draw(self, with_labels=True, font_weight='bold')
 
-    # def check_cr(self):
-    #     """ check if the frequency drives are compatible with a CR drive type"""
-    #     for
+    def check_cr(self):
+        """ check if the frequency drives are compatible with a CR drive type"""
+        for edge in self.edges:
+
+            # defined a boolean that check the CR compatibility
+            b = self.edges[edge]['drive'] == self.nodes[edge[1]]['freq']
+
+            if not b:
+                print(f"The edge {edge} is not a CR edge")
+                return False
+
+        print("The drive frequency are CR compatible")
+        return True
 
     def check_constraint(self, thresholds: np.array, verbose=1, qutrit=False):
         """
@@ -67,7 +81,7 @@ class FrequencyGraph(nx.DiGraph):
         """
         return the frequencies in an array ordered by the nodes
         """
-        return np.array([self.nodes[n]['freq'] for n in self.nodes],
+        return np.array([self.nodes[n]['freq'] for n in range(len(self.nodes))],
                         dtype=np.float32)
 
     @property
@@ -75,7 +89,7 @@ class FrequencyGraph(nx.DiGraph):
         """
         return the anharmonicity in an array ordered by the nodes
         """
-        return np.array([self.nodes[n]['a'] for n in self.nodes],
+        return np.array([self.nodes[n]['a'] for n in range(len(self.nodes))],
                         dtype=np.float32)
 
     @property
@@ -135,7 +149,7 @@ class FrequencyGraph(nx.DiGraph):
                                                     Nsamples=Nsamples)
 
         # construct the list of boolean function and index to apply it
-        idx_list, expr_list = construct_constraint_function(
+        idx_list, expr_list, constraints = construct_constraint_function(
             self,
             freqs_distribution,
             alpha_distribution,
@@ -145,10 +159,11 @@ class FrequencyGraph(nx.DiGraph):
 
         idx_len = [len(idx) for idx in idx_list]
 
-        # Count the numer of collisions
+        # Count the number of collisions
         c = []
-        for idx, expr in zip(idx_list, expr_list):
+        for idx, expr, cstr in zip(idx_list, expr_list, constraints):
             for i in idx:
+                r = expr(*i)
                 c.append(expr(*i))
 
         # counting the tiime where all the conditions are no validated
