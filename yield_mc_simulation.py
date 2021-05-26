@@ -113,6 +113,10 @@ def construct_constraint_function(G, freqs, alpha, d, qutrit=False, cstr=None):
     # constraitn as functions:
     drive = {e: G.edges[e]['drive'] for e in G.edges}
 
+    # Need to be carefull here, the drive are not pertubated when doing the MC search. So the functionalize should not use the drive from the graph when doing the CR but rather use the frequency of the node
+    if not G.cz:
+        constraints = [c.replace("drive[e]", "freqs[j]") for c in constraints]
+    print(constraints)
     expr_list = [functionalize(constr, freqs, alpha, d, drive)
                  for constr in constraints]
 
