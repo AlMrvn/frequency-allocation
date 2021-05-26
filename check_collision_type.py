@@ -9,6 +9,8 @@ from check_solution import *
 from yield_mc_simulation import *
 from frequency_graph import FrequencyGraph
 
+from parsing import parse_csv
+
 if __name__ == '__main__':
 
     path = sys.argv[1]
@@ -25,36 +27,11 @@ if __name__ == '__main__':
         print("Sampling for collision set to default = 10 000")
         Nsample = 10000
 
-    freqs = []
-    with open(path + 'freqs.csv', 'r') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            freqs.append(float(row[1]))
-    freqs = np.array(freqs)
-
-    a = []
-    with open(path + 'anharms.csv', 'r') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            a.append(float(row[1]))
-    a = np.array(a)
-
-    edge_list = []
-
-    freqs_d = []
-    with open(path + 'drive_freqs.csv', 'r') as file:
-        reader = csv.reader(file)
-        for row in reader:
-            edge = (int(row[0][1:]), int(row[1][:-1]))
-            edge_list.append(edge)
-            freqs_d.append(float(row[-1]))
-    freqs_d = np.array(freqs_d)
+    # parse the csd
+    G = parse_csv(path)
 
     # thresholds
     d = np.array([0.017, 0.03, 0.03, 0.017, 0.03, 0.002, 0.017, 0.025, 0.017])
-
-    # graph definition
-    G = FrequencyGraph(edge_list, freqs, a, f_drive=freqs_d, cz=False)
 
     G.check_constraint(d, qutrit=False)
 

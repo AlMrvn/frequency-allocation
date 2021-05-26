@@ -1,4 +1,4 @@
-""" Utils to analyse a give network """
+""" Utils to analyse a given network """
 
 import numpy as np
 import networkx as nx
