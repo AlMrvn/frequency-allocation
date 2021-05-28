@@ -5,7 +5,6 @@
 /Notebook
 
 # test files for the solution saving
-*.txt
 *.pdf
 
 # vscodes settings
