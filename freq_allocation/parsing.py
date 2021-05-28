@@ -2,7 +2,7 @@
 
 import csv
 import numpy as np
-from frequency_graph import FrequencyGraph
+from freq_allocation.frequency_graph import FrequencyGraph
 
 
 def parse_csv(path, cz=False):

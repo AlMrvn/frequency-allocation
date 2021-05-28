@@ -3,8 +3,8 @@
 import numpy as np
 import networkx as nx
 
-from cr_constraints import *
-from yield_mc_simulation import *
+from freq_allocation.cr_constraints import *
+from freq_allocation.yield_mc_simulation import *
 
 
 class FrequencyGraph(nx.DiGraph):

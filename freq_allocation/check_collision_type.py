@@ -5,11 +5,11 @@ import networkx as nx
 import sys
 import csv
 
-from check_solution import *
-from yield_mc_simulation import *
-from frequency_graph import FrequencyGraph
+from freq_allocation.check_solution import *
+from freq_allocation.yield_mc_simulation import *
+from freq_allocation.frequency_graph import FrequencyGraph
 
-from parsing import parse_csv
+from freq_allocation.parsing import parse_csv
 
 if __name__ == '__main__':
 
