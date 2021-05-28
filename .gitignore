@@ -4,6 +4,9 @@
 /.vscode
 /Notebook
 
+# notebook/pytohn files
+*.pyc
+
 # test files for the solution saving
 *.pdf
 
