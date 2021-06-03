@@ -3,6 +3,8 @@ from pyomo.gdp import *
 import numpy as np
 import itertools
 
+SOLVER_NAME = 'glpk'  # cplex, glpk, gurobi
+
 # thresholds are global parameters for now
 C = {'A1': 0.017, 'A2i': 0.03, 'A2j': 0.03, 'E1': 0.017, 'E2': 0.03, 'E4': 0.002,
      'E1t': 0.017, 'E2t': 0.03, 'E4t': 0.002, 'F1': 0.017, 'F2': 0.025, 'M1': 0.017}
@@ -13,14 +15,15 @@ wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1, 'E4': 1,
 
 
 class layout_optimizer():
-    def __init__(self, solver_name: str = None, all_differents=False) -> None:
+    def __init__(self, solver_name: str = None, all_differents=False, CR_flag=True, CZ_flag=False) -> None:
 
         # define the solver name
         self.solver_name = solver_name if solver_name is not None else 'glpk'
 
-        self.CR_flag = True
-        self.CZ_flag = True
+        self.CR_flag = CR_flag
+        self.CZ_flag = CZ_flag
 
+        # parameter for the absolute value in the MIP problem
         self.big_M = 1000
 
         # definition of the model
@@ -47,6 +50,12 @@ class layout_optimizer():
         self.declare_objective()
 
     def declare_decision_variables(self):
+        """ Declare the variables of the models. Here we have three types of variables: 
+            - the frequency of each node f
+            - the anharmonicity of each node a
+            - the threshold for each constraint d
+            - the drive frequency for each edge fd
+        """
 
         m = self.model
 
@@ -71,7 +80,9 @@ class layout_optimizer():
             setattr(m, i, Var(self.Neigh, domain=Boolean))
 
     def declare_constraints(self):
-        # declare the constraints of the optimization
+        """ 
+        declare the constraints of the optimization
+        """
         m = self.model
         big_M = self.big_M
 
@@ -79,7 +90,7 @@ class layout_optimizer():
         m.c1 = ConstraintList()
 
         for (i, j) in m.E:
-            if CR_flag:
+            if self.CR_flag:
                 m.c.add(m.fd[i, j] == m.f[j])
 
             m.c.add(m.f[i] - m.f[j] + big_M*m.a1[i, j] >= m.d['A1', (i, j)])
@@ -172,7 +183,7 @@ class layout_optimizer():
                                           big_M*(1-m.sf[i, j]) >= 0.001)
 
     def declare_objective(self):
-        # Declare objective function
+        """Declare objective function"""
         # m.obj = Objective(expr=sum(m.d[c,e]-C[c] for c in m.C for e in m.E), sense=maximize)
         self.model.obj = Objective(expr=sum(wC[c]*(self.model.d[c, e]-C[c])
                                             for c in self.model.C for e in self.model.E), sense=maximize)
@@ -188,8 +199,8 @@ class layout_optimizer():
             self.solver.options['TimeLimit'] = TIME_LIMIT
 
     def first_pass(self):
-        # First solve while constraining the distances from deltas from their lower
-        # bounds to be equal, and the deltas of each type to be equal on all edges
+        """First solve while constraining the distances from deltas from their lower bounds to be equal, and the deltas of each type to be equal on all edges
+        """
         m = self.model
         m.tmp_cons = ConstraintList()
         m.tmp_linking_cons = ConstraintList()
@@ -200,22 +211,26 @@ class layout_optimizer():
                                        C[B[k]] == m.d[B[k+1], m.E[1]] - C[B[k+1]])
             for e in m.E:
                 m.tmp_cons.add(m.d[c, m.E[1]] == m.d[c, e])
-        self.solver.solve(m)
+        results = self.solver.solve(m)
+        return results
 
     def second_pass(self):
-        # Now remove those linking constraints and place a lower bound on the delta differences
+        """Now remove those linking constraints and place a lower bound on the delta differences
+        """
         m = self.model
         m.tmp_cons_2 = ConstraintList()
-        m.tmp_linking_cons.clear()
+
         best_value_with_deltas_same = value(m.d[m.C[1], m.E[1]]) - C[m.C[1]]
         for c in C:
             m.tmp_cons_2.add(m.d[c, m.E[1]] - C[c] >=
                              best_value_with_deltas_same)
 
-        self.solver.solve(m)
+        results = self.solver.solve(m)
+        return results
 
     def thrid_pass(self):
-        # Lastly, remove the constraints requiring deltas of each type to be equal on all edges, but provide a lower bound
+        """ Lastly, remove the constraints requiring deltas of each type to be equal on all edges, but provide a lower bound
+        """
         m = self.model
         m.tmp_cons.clear()
         m.tmp_cons_2.clear()
@@ -227,9 +242,12 @@ class layout_optimizer():
 
         results = self.solver.solve(m)
         print(value(m.obj))
+        return results
 
     def construct_neighborhood(self):
-        # Define the neighborhood set Neigh
+        """
+        Define the neighborhood set Neigh
+        """
         m = self.model
         self.N_c = []
         self.N_t = []
@@ -246,38 +264,44 @@ class layout_optimizer():
         else:
             self.Neigh = self.N_c + self.N_t
 
+    def save_csv(self, path):
+        """ 
+        Save the result into several csv files
+        """
+        m = self.model
+        with open(path + 'deltas.csv', 'w') as f:
+            for (c, e) in itertools.product(m.C, m.E):
+                f.write('%s, %s, %s\n' % (c, e, m.d[c, e].value))
+
+        with open(path + 'freqs.csv', 'w') as f:
+            for n in m.N:
+                f.write('%s, %s\n' % (n, m.f[n].value))
+
+        with open(path + 'anharms.csv', 'w') as f:
+            for n in m.N:
+                f.write('%s, %s\n' % (n, m.a[n].value))
+
+        with open(path + 'drive_freqs.csv', 'w') as f:
+            for (i, j) in m.E:
+                if m.fd[i, j].value is not None:
+                    f.write('%s, %s\n' % ((i, j), m.fd[i, j].value))
+
 
 if __name__ == '__main__':
     # saving directory
     path = "../solutions/cz/"
 
     # Hyperparameters:
-    SOLVER_NAME = 'glpk'  # cplex, glpk, gurobi
+
     CR_flag = False
     CZ_flag = True
 
-    lo = layout_optimizer()
+    lo = layout_optimizer(CR_flag=CR_flag, CZ_flag=CZ_flag)
     lo.declare_solver()
     lo.first_pass()
     lo.second_pass()
     lo.thrid_pass()
-
-    # with open(path + 'deltas.csv', 'w') as f:
-    #     for (c, e) in itertools.product(m.C, m.E):
-    #         f.write('%s, %s, %s\n' % (c, e, m.d[c, e].value))
-
-    # with open(path + 'freqs.csv', 'w') as f:
-    #     for n in m.N:
-    #         f.write('%s, %s\n' % (n, m.f[n].value))
-
-    # with open(path + 'anharms.csv', 'w') as f:
-    #     for n in m.N:
-    #         f.write('%s, %s\n' % (n, m.a[n].value))
-
-    # with open(path + 'drive_freqs.csv', 'w') as f:
-    #     for (i, j) in m.E:
-    #         if m.fd[i, j].value is not None:
-    #             f.write('%s, %s\n' % ((i, j), m.fd[i, j].value))
+    lo.save_csv(path)
 
     # if CZ_flag:
     #     np.random.seed(2)
