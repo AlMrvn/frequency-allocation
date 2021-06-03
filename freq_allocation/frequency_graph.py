@@ -10,30 +10,32 @@ from freq_allocation.optimization import layout_optimizer
 
 class FrequencyGraph(nx.DiGraph):
 
-    def __init__(self, edges, frequencies, anharmonicity, f_drive=None, cz=False):
+    def __init__(self, edges, frequencies=None, anharmonicity=None, f_drive=None, cz=False):
         # init the Digraph
         nx.DiGraph.__init__(self)
 
         # add the nodes to the graph:
         self.add_edges_from(edges)
 
-        # add the frequencies. We cannot enumerate the nodes as add_edge changes the order
-        for k in range(len(self.nodes)):
-            self.nodes[k]['freq'] = frequencies[k]
-            self.nodes[k]['a'] = anharmonicity[k]
+        if (frequencies) and (anharmonicity):
+            # add the frequencies. We cannot enumerate the nodes as add_edge changes the order
+            for k in range(len(self.nodes)):
+                self.nodes[k]['freq'] = frequencies[k]
+                self.nodes[k]['a'] = anharmonicity[k]
 
-        # add the driving
-        for e, fd in zip(edges, f_drive):
-            self.edges[e]['drive'] = fd
+            # add the driving
+            for e, fd in zip(edges, f_drive):
+                self.edges[e]['drive'] = fd
 
-        self.cz = cz
+            self.cz = cz
 
-        if not self.cz:
-            self.check_cr()
+            if not self.cz:
+                self.check_cr()
 
     def plot(self, fig=None, ax=None):
         """ Draw the Graph """
-        nx.draw(self, with_labels=True, font_weight='bold')
+        nx.draw(self, with_labels=True,
+                pos=nx.spring_layout(self), font_weight='bold')
 
     def check_cr(self):
         """ check if the frequency drives are compatible with a CR drive type"""
