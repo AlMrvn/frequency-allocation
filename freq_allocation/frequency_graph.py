@@ -159,26 +159,31 @@ class FrequencyGraph(nx.DiGraph):
             lo = layout_optimizer(CR_flag=False, CZ_flag=True)
             lo.declare_solver()
 
-            # remove some of the constraints
-            lo.model.last_lbs.clear()
-
             if lo.all_differents:
                 lo.model.freq_difference.clear()
 
-            for f, a in zip(freqs_distribution, alpha_distribution):
+            for i, (f, a) in enumerate(zip(freqs_distribution, alpha_distribution)):
 
                 # fixe the frequency and anharmonicity
                 lo.fix_frequencies(f, a)
                 # re-solve the model
                 lo.solver.solve(lo.model)
                 # extract the drive frequencies:
-                np.array([lo.model.fd[i, j].value for (i, j) in lo.model.E])
+                drives[:, i] = np.array(
+                    [lo.model.fd[i, j].value for (i, j) in lo.model.E])
+
+            drive = {e: drives[i_e] for i_e, e in enumerate(self.edges)}
+
+        else:
+            # constraitn as functions:
+            drive = {e: self.edges[e]['drive'] for e in self.edges}
 
         # construct the list of boolean function and index to apply it
         idx_list, expr_list, constraints = construct_constraint_function(
             self,
             freqs_distribution,
             alpha_distribution,
+            drive,
             thresholds,
             qutrit=qutrit,
             cstr=cstr)

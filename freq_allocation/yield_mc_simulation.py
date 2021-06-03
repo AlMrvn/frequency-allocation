@@ -88,7 +88,7 @@ def functionalize(constr, freqs, alpha, d, drive, qutrit=False):
 # construct the checking functions. This only work for the CR qubit
 
 
-def construct_constraint_function(G, freqs, alpha, d, qutrit=False, cstr=None):
+def construct_constraint_function(G, freqs, alpha, drive, d, qutrit=False, cstr=None):
     """ 
     Create the list of functions and index where the constraint are tested.
     Args:
@@ -98,7 +98,7 @@ def construct_constraint_function(G, freqs, alpha, d, qutrit=False, cstr=None):
         d (np.arrya): threshold for the constraints
     Return:
         Array of N x Nsamples
-        """
+    """
 
     # Constructing the list of index for the constraints
     if cstr is None:
@@ -110,12 +110,11 @@ def construct_constraint_function(G, freqs, alpha, d, qutrit=False, cstr=None):
     if qutrit:
         print("Not implemented yet")
 
-    # constraitn as functions:
-    drive = {e: G.edges[e]['drive'] for e in G.edges}
-
     # Need to be carefull here, the drive are not pertubated when doing the MC search. So the functionalize should not use the drive from the graph when doing the CR but rather use the frequency of the node
     if not G.cz:
         constraints = [c.replace("drive[e]", "freqs[j]") for c in constraints]
+
+    print(d)
 
     expr_list = [functionalize(constr, freqs, alpha, d, drive)
                  for constr in constraints]

@@ -298,11 +298,11 @@ class layout_optimizer():
 
 if __name__ == '__main__':
     # saving directory
-    path = "../solutions/cr/"
+    path = "../solutions/cz/"
 
     # Hyperparameters:
 
-    CR_flag = True
+    CR_flag = False
     CZ_flag = not CR_flag
 
     lo = layout_optimizer(CR_flag=CR_flag, CZ_flag=CZ_flag)

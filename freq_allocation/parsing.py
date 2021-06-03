@@ -42,4 +42,4 @@ def parse_csv(path, cz=False):
     freqs_d = np.array(freqs_d)
 
     # graph definition
-    return FrequencyGraph(edge_list, freqs, a, f_drive=freqs_d, cz=False)
+    return FrequencyGraph(edge_list, freqs, a, f_drive=freqs_d, cz=cz)
