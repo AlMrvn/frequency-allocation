@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 import sys
-import csv
 
 from freq_allocation.check_solution import *
 from freq_allocation.yield_mc_simulation import *

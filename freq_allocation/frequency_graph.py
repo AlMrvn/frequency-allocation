@@ -5,6 +5,7 @@ import networkx as nx
 
 from freq_allocation.cr_constraints import *
 from freq_allocation.yield_mc_simulation import *
+from freq_allocation.optimization import layout_optimizer
 
 
 class FrequencyGraph(nx.DiGraph):
@@ -147,6 +148,31 @@ class FrequencyGraph(nx.DiGraph):
         alpha_distribution = generate_random_sample(target_alpha,
                                                     sigma=1e-5,
                                                     Nsamples=Nsamples)
+
+        print(freqs_distribution.shape)
+
+        # if we are working with CZ, we also need to adjust the drive
+        if self.cz:
+
+            drives = np.zeros((len(self.edges), Nsamples))
+
+            lo = layout_optimizer(CR_flag=False, CZ_flag=True)
+            lo.declare_solver()
+
+            # remove some of the constraints
+            lo.model.last_lbs.clear()
+
+            if lo.all_differents:
+                lo.model.freq_difference.clear()
+
+            for f, a in zip(freqs_distribution, alpha_distribution):
+
+                # fixe the frequency and anharmonicity
+                lo.fix_frequencies(f, a)
+                # re-solve the model
+                lo.solver.solve(lo.model)
+                # extract the drive frequencies:
+                np.array([lo.model.fd[i, j].value for (i, j) in lo.model.E])
 
         # construct the list of boolean function and index to apply it
         idx_list, expr_list, constraints = construct_constraint_function(

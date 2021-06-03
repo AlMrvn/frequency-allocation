@@ -42,6 +42,7 @@ class layout_optimizer():
         self.declare_decision_variables()
 
         # initialization of the constraints
+        self.all_differents = all_differents
         if all_differents:
             self.all_frequency_differents()
         self.declare_constraints()
@@ -215,7 +216,8 @@ class layout_optimizer():
         return results
 
     def second_pass(self):
-        """Now remove those linking constraints and place a lower bound on the delta differences
+        """
+        Now remove those linking constraints and place a lower bound on the delta differences
         """
         m = self.model
         m.tmp_cons_2 = ConstraintList()
@@ -286,15 +288,22 @@ class layout_optimizer():
                 if m.fd[i, j].value is not None:
                     f.write('%s, %s\n' % ((i, j), m.fd[i, j].value))
 
+    def fix_frequencies(self, frequencies, anharmonicity):
+        """ fix the frequency and anharmonicity of the node. The only constraint is now the drive of the frequency. This is needed to calculate the frequency drive of a given frequency pattern
+        """
+        for n in self.model.N:
+            self.model.f[n].fix(frequencies[n])
+            self.model.a[n].fix(anharmonicity[n])
+
 
 if __name__ == '__main__':
     # saving directory
-    path = "../solutions/cz/"
+    path = "../solutions/cr/"
 
     # Hyperparameters:
 
-    CR_flag = False
-    CZ_flag = True
+    CR_flag = True
+    CZ_flag = not CR_flag
 
     lo = layout_optimizer(CR_flag=CR_flag, CZ_flag=CZ_flag)
     lo.declare_solver()
@@ -303,30 +312,23 @@ if __name__ == '__main__':
     lo.thrid_pass()
     lo.save_csv(path)
 
-    # if CZ_flag:
-    #     np.random.seed(2)
-    #     m.last_lbs.clear()
-    #     m.freq_difference.clear()
+    if CZ_flag:
+        m = lo.model
+        np.random.seed(2)
+        m.last_lbs.clear()
 
-    #     saved = np.zeros(len(m.N))
-    #     saved_a = np.zeros(len(m.N))
-    #     for n in m.N:
-    #         saved[n] = value(m.f[n])
-    #         saved_a[n] = value(m.a[n])
+        if lo.all_differents:
+            m.freq_difference.clear()
 
-    #     for i in range(100):
-    #         for n in m.N:
-    #             m.f[n].fix(saved[n] + 0.05*np.random.normal(0, 1))
-    #             m.a[n].fix(saved_a[n])
-    #         solver.solve(m)
-    #         print(value(m.obj))
+        saved = np.zeros(len(m.N))
+        saved_a = np.zeros(len(m.N))
+        for n in m.N:
+            saved[n] = value(m.f[n])
+            saved_a[n] = value(m.a[n])
 
-    #         with open(path + 'freqs_' + str(i) + '.csv', 'w') as f:
-    #             for n in m.N:
-    #                 f.write('%s, %s\n' % (n, m.f[n].value))
+        for i in range(100):
+            freqs = saved + 0.05*np.random.normal(0, 1)
+            lo.fix_frequencies(freqs, saved_a)
 
-    #         with open(path + 'drive_freqs_' + str(i) + '.csv', 'w') as f:
-    #             for (i, j) in m.E:
-    #                 if m.fd[i, j].value is not None:
-
-    #                     f.write('%s, %s\n' % ((i, j), m.fd[i, j].value))
+            lo.solver.solve(m)
+            print(value(m.obj))
