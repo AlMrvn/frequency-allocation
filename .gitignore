@@ -2,8 +2,8 @@
 */__pycache__
 /solutions
 /.vscode
+/archive/*
 /archive
-
 # notebook/pytohn files
 *.pyc
 
