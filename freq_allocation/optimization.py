@@ -15,13 +15,22 @@ wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1, 'E4': 1,
 
 
 class layout_optimizer():
-    def __init__(self, solver_name: str = None, all_differents=False, CR_flag=True, CZ_flag=False) -> None:
+    def __init__(self, graph, architecture=None, qutrit=False, solver_name: str = None, all_differents=False) -> None:
 
         # define the solver name
         self.solver_name = solver_name if solver_name is not None else 'glpk'
 
-        self.CR_flag = CR_flag
-        self.CZ_flag = CZ_flag
+        if architecture == "CZ":
+            self.CR_flag = False
+            self.CZ_flag = True
+        elif architecture is None or architecture == 'CR':
+            self.CR_flag = True
+            self.CZ_flag = False
+        else:
+            raise Exception("architecure not understood. Should be CZ or CR")
+
+        if qutrit:
+            raise Exception("Qutrit not yet implemented properly")
 
         # parameter for the absolute value in the MIP problem
         self.big_M = 1000
@@ -30,10 +39,10 @@ class layout_optimizer():
         self.model = ConcreteModel()
 
         # initialization of variables:
-        self.model.N = Set(initialize=range(0, 6))
+        self.model.N = Set(initialize=range(0, len(graph)))
         self.model.C = Set(initialize=C.keys())
         self.model.E = Set(
-            initialize=[(0, 1), (1, 2), (2, 3), (4, 3), (5, 4), (0, 5)])
+            initialize=list(graph.edges))
 
         # construct the neigbhoroud
         self.construct_neighborhood()
@@ -230,7 +239,7 @@ class layout_optimizer():
         results = self.solver.solve(m)
         return results
 
-    def thrid_pass(self):
+    def third_pass(self):
         """ Lastly, remove the constraints requiring deltas of each type to be equal on all edges, but provide a lower bound
         """
         m = self.model
@@ -243,7 +252,7 @@ class layout_optimizer():
                 m.last_lbs.add(m.d[c, e] >= value(m.d[c, m.E[1]]))
 
         results = self.solver.solve(m)
-        print(value(m.obj))
+        # print(value(m.obj))
         return results
 
     def construct_neighborhood(self):
@@ -295,6 +304,16 @@ class layout_optimizer():
             self.model.f[n].fix(frequencies[n])
             self.model.a[n].fix(anharmonicity[n])
 
+    def get_solution(self):
+        """
+        Return the solution of the opitmiziation
+        """
+        freqs = {n: self.model.f[n].value for n in self.model.N}
+        anharms = {n: self.model.a[n].value for n in self.model.N}
+        drives = {(i, j): self.model.fd[i, j].value for (i, j) in self.model.E}
+
+        return freqs, anharms, drives
+
 
 if __name__ == '__main__':
     # saving directory
@@ -309,7 +328,7 @@ if __name__ == '__main__':
     lo.declare_solver()
     lo.first_pass()
     lo.second_pass()
-    lo.thrid_pass()
+    lo.third_pass()
     lo.save_csv(path)
 
     if CZ_flag:

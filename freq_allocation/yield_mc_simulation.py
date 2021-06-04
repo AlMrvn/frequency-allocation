@@ -114,8 +114,6 @@ def construct_constraint_function(G, freqs, alpha, drive, d, qutrit=False, cstr=
     if not G.cz:
         constraints = [c.replace("drive[e]", "freqs[j]") for c in constraints]
 
-    print(d)
-
     expr_list = [functionalize(constr, freqs, alpha, d, drive)
                  for constr in constraints]
 

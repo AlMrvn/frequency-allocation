@@ -9,6 +9,8 @@ from freq_allocation.optimization import layout_optimizer
 
 
 class FrequencyGraph(nx.DiGraph):
+    """ Frequency Graph of a given layout. THis graph represent the transmon layout. Each node have a frequency and a anharmonicity. Each edge has a drive frequency.
+    """
 
     def __init__(self, edges, frequencies=None, anharmonicity=None, f_drive=None, cz=False):
         # init the Digraph
@@ -27,10 +29,28 @@ class FrequencyGraph(nx.DiGraph):
             for e, fd in zip(edges, f_drive):
                 self.edges[e]['drive'] = fd
 
-            self.cz = cz
+        self.cz = cz
 
-            if not self.cz:
-                self.check_cr()
+    def set_values(self, freqs: dict, anharms: dict, drives: dict = None):
+        """
+        Set the values in the FrequencyGraph ie the frequency, the anharmonicity of each node as well as the drive frequency of each edge. All these need to be give as dictionnary.
+        Arguments:
+            freqs (dict): dictionnary of the nodes frequency {0: 5.6}
+            anharms (dict): dictionnary of the nodes anharmonicity
+            drives (dict): dictionnary of the edge drive frequency {(0,1): 5.6}
+        """
+        for k in freqs:
+            self.nodes[k]['freq'] = freqs[k]
+            self.nodes[k]['a'] = anharms[k]
+
+        # add the driving
+        if drives:
+            for e in drives:
+                self.edges[e]['drive'] = drives[e]
+
+        # check if the solution is valid for cr
+        if not self.cz:
+            self.check_cr()
 
     def plot(self, fig=None, ax=None):
         """ Draw the Graph """
@@ -38,7 +58,11 @@ class FrequencyGraph(nx.DiGraph):
                 pos=nx.spring_layout(self), font_weight='bold')
 
     def check_cr(self):
-        """ check if the frequency drives are compatible with a CR drive type"""
+        """
+        check if the frequency drives are compatible with a CR drive type
+        Returns:
+            Bool: Return True if the drive of the graph are CR compatible
+        """
         for edge in self.edges:
 
             # defined a boolean that check the CR compatibility
@@ -64,7 +88,7 @@ class FrequencyGraph(nx.DiGraph):
         if qutrit:
             constraints.extend([type1b, type2b, type2c,
                                 type3b, type5b, type6b, type6c])
-            print(thresholds)
+
             thresholds = np.concatenate(
                 (thresholds, thresholds[np.ix_([0, 1, 1, 2, 4, 5, 5])]))
         res = 0
@@ -151,14 +175,12 @@ class FrequencyGraph(nx.DiGraph):
                                                     sigma=1e-5,
                                                     Nsamples=Nsamples)
 
-        print(freqs_distribution.shape)
-
         # if we are working with CZ, we also need to adjust the drive
         if self.cz:
 
             drives = np.zeros((len(self.edges), Nsamples))
 
-            lo = layout_optimizer(CR_flag=False, CZ_flag=True)
+            lo = layout_optimizer(graph=self, architecture='CZ')
             lo.declare_solver()
 
             if lo.all_differents:
