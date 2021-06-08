@@ -186,8 +186,12 @@ class FrequencyGraph(nx.DiGraph):
             if lo.all_differents:
                 lo.model.freq_difference.clear()
 
-            for i, (f, a) in enumerate(zip(freqs_distribution, alpha_distribution)):
+            print(f"frequency distribution {freqs_distribution.shape}")
+            print(f"anharmonicity {alpha_distribution.shape}")
 
+            for i, (f, a) in enumerate(zip(freqs_distribution.T, alpha_distribution.T)):
+
+                print(len(f))
                 # fixe the frequency and anharmonicity
                 lo.fix_frequencies(f, a)
                 # re-solve the model

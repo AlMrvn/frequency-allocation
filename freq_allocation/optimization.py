@@ -3,7 +3,7 @@ from pyomo.gdp import *
 import numpy as np
 import itertools
 
-SOLVER_NAME = 'glpk'  # cplex, glpk, gurobi
+SOLVER_NAME = 'gurobi'  # cplex, glpk, gurobi
 
 # thresholds are global parameters for now
 C = {'A1': 0.017, 'A2i': 0.03, 'A2j': 0.03, 'E1': 0.017, 'E2': 0.03, 'E4': 0.002,
@@ -200,6 +200,7 @@ class layout_optimizer():
 
     def declare_solver(self):
         self.solver = SolverFactory(SOLVER_NAME)
+        print(SOLVER_NAME)
         TIME_LIMIT = 100
         if SOLVER_NAME == 'cplex':
             self.solver.options['timelimit'] = TIME_LIMIT
