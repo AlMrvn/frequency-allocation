@@ -9,6 +9,7 @@ SOLVER_NAME = 'gurobi'  # cplex, glpk, gurobi
 C = {'A1': 0.017, 'A2i': 0.03, 'A2j': 0.03, 'E1': 0.017, 'E2': 0.03, 'E4': 0.002,
      'E1t': 0.017, 'E2t': 0.03, 'E4t': 0.002, 'F1': 0.017, 'F2': 0.025, 'M1': 0.017}
 
+
 # weight of the objective function are also global parameters
 wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1, 'E4': 1,
       'E1t': 1, 'E2t': 1, 'E4t': 1, 'F1': 1, 'F2': 1, 'M1': 1}
@@ -200,7 +201,6 @@ class layout_optimizer():
 
     def declare_solver(self):
         self.solver = SolverFactory(SOLVER_NAME)
-        print(SOLVER_NAME)
         TIME_LIMIT = 100
         if SOLVER_NAME == 'cplex':
             self.solver.options['timelimit'] = TIME_LIMIT

@@ -3,13 +3,12 @@
 import numpy as np
 import networkx as nx
 
-from freq_allocation.cr_constraints import *
 from freq_allocation.yield_mc_simulation import *
 from freq_allocation.optimization import layout_optimizer
 
 
 class FrequencyGraph(nx.DiGraph):
-    """ Frequency Graph of a given layout. THis graph represent the transmon layout. Each node have a frequency and a anharmonicity. Each edge has a drive frequency.
+    """ Frequency Graph of a given layout. This graph represent the transmon layout. Each node have a frequency and a anharmonicity. Each edge has a drive frequency.
     """
 
     def __init__(self, edges, frequencies=None, anharmonicity=None, f_drive=None, cz=False):
@@ -75,33 +74,33 @@ class FrequencyGraph(nx.DiGraph):
         print("The drive frequency are CR compatible")
         return True
 
-    def check_constraint(self, thresholds: np.array, verbose=1, qutrit=False):
-        """
-        Check all the constraint on the graph of solution
-        Args:
-            thresholds (np.array): threshold associated with the differents constraints.
-            verbose (int): if verbose > 0, will print where the constraints are not satisfied
-        Returns:
-            number_of_error (int) number of non satisfied constraints
-        """
-        constraints = [type_A1, type_A2, type3, type4, type5, type6, type7]
-        if qutrit:
-            constraints.extend([type1b, type2b, type2c,
-                                type3b, type5b, type6b, type6c])
+    # def check_constraint(self, thresholds: np.array, verbose=1, qutrit=False):
+    #     """
+    #     Check all the constraint on the graph of solution
+    #     Args:
+    #         thresholds (np.array): threshold associated with the differents constraints.
+    #         verbose (int): if verbose > 0, will print where the constraints are not satisfied
+    #     Returns:
+    #         number_of_error (int) number of non satisfied constraints
+    #     """
+    #     constraints = [type_A1, type_A2, type3, type4, type5, type6, type7]
+    #     if qutrit:
+    #         constraints.extend([type1b, type2b, type2c,
+    #                             type3b, type5b, type6b, type6c])
 
-            thresholds = np.concatenate(
-                (thresholds, thresholds[np.ix_([0, 1, 1, 2, 4, 5, 5])]))
-        res = 0
+    #         thresholds = np.concatenate(
+    #             (thresholds, thresholds[np.ix_([0, 1, 1, 2, 4, 5, 5])]))
+    #     res = 0
 
-        for c, d in zip(constraints, thresholds):
+    #     for c, d in zip(constraints, thresholds):
 
-            error = list(c(self, d).keys())
-            if error != []:
+    #         error = list(c(self, d).keys())
+    #         if error != []:
 
-                if verbose > 0:
-                    print(f"{c.__name__:<8} (min= {d:.03f} GHz) on {error}")
-                res += 1
-        return res
+    #             if verbose > 0:
+    #                 print(f"{c.__name__:<8} (min= {d:.03f} GHz) on {error}")
+    #             res += 1
+    #     return res
 
     @property
     def freqs(self):
@@ -118,6 +117,12 @@ class FrequencyGraph(nx.DiGraph):
         """
         return np.array([self.nodes[n]['a'] for n in range(len(self.nodes))],
                         dtype=np.float32)
+
+    @property
+    def drive(self):
+        """return the drive frequency of each edge in the graph as a dictionnary
+        """
+        return {e: self.edges[e]['drive'] for e in self.edges}
 
     @property
     def oriented_edge_index(self):
@@ -180,25 +185,25 @@ class FrequencyGraph(nx.DiGraph):
 
             drives = np.zeros((len(self.edges), Nsamples))
 
-            lo = layout_optimizer(graph=self, architecture='CZ')
-            lo.declare_solver()
-
-            if lo.all_differents:
-                lo.model.freq_difference.clear()
-
-            print(f"frequency distribution {freqs_distribution.shape}")
-            print(f"anharmonicity {alpha_distribution.shape}")
-
             for i, (f, a) in enumerate(zip(freqs_distribution.T, alpha_distribution.T)):
 
-                print(len(f))
+                lo = layout_optimizer(graph=self, architecture='CZ')
+                lo.declare_solver()
+
                 # fixe the frequency and anharmonicity
                 lo.fix_frequencies(f, a)
                 # re-solve the model
-                lo.solver.solve(lo.model)
-                # extract the drive frequencies:
-                drives[:, i] = np.array(
-                    [lo.model.fd[i, j].value for (i, j) in lo.model.E])
+                r = lo.first_pass()
+                if r.Solver.Status == "warning":
+                    drives[:, i] = np.array([self.drive[(i, j)]
+                                            for (i, j) in lo.model.E])
+                else:
+                    # others passes should be fine
+                    lo.second_pass()
+                    lo.third_pass()
+                    # extract the drive frequencies:
+                    drives[:, i] = np.array(
+                        [lo.model.fd[i, j].value for (i, j) in lo.model.E])
 
             drive = {e: drives[i_e] for i_e, e in enumerate(self.edges)}
 
