@@ -18,7 +18,7 @@ class FrequencyGraph(nx.DiGraph):
         # add the nodes to the graph:
         self.add_edges_from(edges)
 
-        if (frequencies) and (anharmonicity):
+        if any(frequencies) and any(anharmonicity):
             # add the frequencies. We cannot enumerate the nodes as add_edge changes the order
             for k in range(len(self.nodes)):
                 self.nodes[k]['freq'] = frequencies[k]
