@@ -230,3 +230,44 @@ class FrequencyGraph(nx.DiGraph):
 
         # counting the tiime where all the conditions are no validated
         return np.sum(~np.array(c), axis=0), c, idx_list, constraints
+
+    def check_solution(self,
+                       thresholds: np.array,
+                       qutrit: bool = False,
+                       cstr=None
+                       ):
+        """
+        Calculate the yield of the FrequencyGraph for a given dispersion in frequency.
+        Args:
+            thresholds (np.array): array of the threshold for each constraint
+            sigma (float): dispersion of frequency in GHz
+            Nsample (int): number of sample for the MC yield simulation
+        """
+
+        # construct the list of boolean function and index to apply it
+        idx_list, expr_list, constraints = construct_constraint_function(
+            self,
+            np.array([self.freqs]).T,
+            np.array([self.anharmonicity]).T,
+            self.drive,
+            thresholds,
+            qutrit=qutrit,
+            cstr=cstr)
+
+        # Count the number of collisions
+
+        c = []
+        for idx, expr in zip(idx_list, expr_list):
+            for i in idx:
+                c.append(expr(*i))
+
+        # now we print the collisions
+        c = np.squeeze(c)
+        constraints_flat = [k for constr, idx in zip(
+            constraints, idx_list) for k in [constr]*len(idx)]
+        idx_list_flat = [k for k in idx for idx in idx_list]
+        for k in range(len(c)):
+            if not c[k]:
+                print(f"{constraints_flat[k]} at {idx_list_flat[k]}")
+
+        return all(c)
