@@ -7,12 +7,12 @@ SOLVER_NAME = 'gurobi'  # cplex, glpk, gurobi
 
 # thresholds are global parameters for now
 C = {'A1': 0.017, 'A2i': 0.03, 'A2j': 0.03, 'E1': 0.017, 'E2': 0.03, 'E4': 0.002,
-     'E1t': 0.017, 'E2t': 0.03, 'E4t': 0.002, 'F1': 0.017, 'F2': 0.025, 'M1': 0.017}
+     'E1t': 0.017, 'E2t': 0.03, 'E4t': 0.002, 'F1': 0.017, 'F2': 0.025, 'M1': 0.017, 'C1': 0}
 
 
 # weight of the objective function are also global parameters
 wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1, 'E4': 1,
-      'E1t': 1, 'E2t': 1, 'E4t': 1, 'F1': 1, 'F2': 1, 'M1': 1}
+      'E1t': 1, 'E2t': 1, 'E4t': 1, 'F1': 1, 'F2': 1, 'M1': 1, 'C1': 1}
 
 
 class layout_optimizer():
@@ -137,8 +137,8 @@ class layout_optimizer():
             # m.c.add(  m.fd[i,j] - m.f[i] - 3*m.a[i]/2 + big_M*m.e5[i,j]     >= m.d['E5',(i,j)])
             # m.c.add( -m.fd[i,j] + m.f[i] + 3*m.a[i]/2 + big_M*(1-m.e5[i,j]) >= m.d['E5',(i,j)])
 
-            m.c.add(m.f[i] + m.a[i] <= m.fd[i, j])
-            m.c1.add(m.fd[i, j] <= m.f[i])
+            m.c.add(m.fd[i, j] - m.f[i] - m.a[i] >= m.d['C1', (i, j)])
+            m.c.add(m.f[i] - m.fd[i, j] >= m.d['C1', (i, j)])
 
             if self.CZ_flag:
                 m.c.add(m.fd[i, j] - m.f[j] + big_M *
@@ -158,8 +158,8 @@ class layout_optimizer():
                 # m.c.add(  m.fd[i,j] - m.f[j] - 3*m.a[j]/2 + big_M*m.e5[i,j]     >= m.d['E5',(i,j)])
                 # m.c.add( -m.fd[i,j] + m.f[j] + 3*m.a[j]/2 + big_M*(1-m.e5[i,j]) >= m.d['E5',(i,j)])
 
-                m.c.add(m.f[j] + m.a[j] <= m.fd[i, j])
-                m.c.add(m.fd[i, j] <= m.f[j])
+                m.c.add(m.fd[i, j] - m.f[j] - m.a[j] >= m.d['C2', (i, j)])
+                m.c.add(m.f[j] - m.fd[i, j] >= m.d['C2', (i, j)])
 
             for (i, j, k) in self.Neigh:
                 m.c.add(m.fd[i, j] - m.f[k] + big_M *
