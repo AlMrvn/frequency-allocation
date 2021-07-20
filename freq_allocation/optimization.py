@@ -93,7 +93,7 @@ class layout_optimizer():
         # decision variables
         m.f = Var(m.N, domain=Reals, bounds=(4.52, 5.98))
         # m.f  = Var(m.N, domain=Reals, bounds=(4.5, 6))
-        m.a = Var(m.N, domain=Reals, bounds=(-0.3, -0.3))
+        m.a = Var(m.N, domain=Reals, bounds=(-0.35, -0.35))
         # m.a = Var(m.N, domain=Reals, bounds=(-0.35, -0.2))
         # m.d  = Var(m.C, domain=Reals, bounds=_bounds_rule)
         m.d = Var(m.C, m.E, domain=Reals, bounds=_bounds_rule)
