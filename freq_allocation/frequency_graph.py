@@ -56,7 +56,7 @@ class FrequencyGraph(nx.DiGraph):
         nx.draw(self, with_labels=True,
                 pos=nx.spring_layout(self), font_weight='bold')
 
-    def check_cr(self):
+    def check_cr(self, tol=1e-5):
         """
         check if the frequency drives are compatible with a CR drive type
         Returns:
@@ -65,7 +65,8 @@ class FrequencyGraph(nx.DiGraph):
         for edge in self.edges:
 
             # defined a boolean that check the CR compatibility
-            b = self.edges[edge]['drive'] == self.nodes[edge[1]]['freq']
+            b = np.abs(self.edges[edge]['drive'] -
+                       self.nodes[edge[1]]['freq']) < tol
 
             if not b:
                 print(f"The edge {edge} is not a CR edge")
