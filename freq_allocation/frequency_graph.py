@@ -51,10 +51,12 @@ class FrequencyGraph(nx.DiGraph):
         if not self.cz:
             self.check_cr()
 
-    def plot(self, fig=None, ax=None):
+    def plot(self, fig=None, ax=None, pos=None):
         """ Draw the Graph """
+        if pos is None:
+            pos = nx.spring_layout(self)
         nx.draw(self, with_labels=True,
-                pos=nx.spring_layout(self), font_weight='bold')
+                pos=pos, font_weight='bold')
 
     def check_cr(self, tol=1e-5):
         """
