@@ -161,7 +161,8 @@ class FrequencyGraph(nx.DiGraph):
                       sigma: float = 0.05,
                       Nsamples: int = 10000,
                       qutrit: bool = False,
-                      cstr=None
+                      cstr=None,
+                      reoptimize=False
                       ):
         """
         Calculate the yield of the FrequencyGraph for a given dispersion in frequency.
@@ -184,7 +185,7 @@ class FrequencyGraph(nx.DiGraph):
                                                     Nsamples=Nsamples)
 
         # if we are working with CZ, we also need to adjust the drive
-        if self.cz:
+        if (self.cz and reoptimize):
 
             drives = np.zeros((len(self.edges), Nsamples))
 
