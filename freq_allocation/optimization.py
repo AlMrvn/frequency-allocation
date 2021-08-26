@@ -1,3 +1,4 @@
+from pyomo.core.base import constraint
 from pyomo.environ import *
 from pyomo.gdp import *
 import numpy as np
@@ -11,7 +12,7 @@ SOLVER_NAME = 'gurobi'  # cplex, glpk, gurobi
 
 
 class layout_optimizer():
-    def __init__(self, graph, architecture=None, qutrit=False, solver_name: str = None, all_differents=False) -> None:
+    def __init__(self, graph, architecture=None, qutrit=False, solver_name: str = None, all_differents=False, constraint_dict=None, weight_dict=None) -> None:
 
         # define the solver name
         self.solver_name = solver_name if solver_name is not None else 'glpk'
@@ -26,14 +27,14 @@ class layout_optimizer():
             raise Exception("architecure not understood. Should be CZ or CR")
 
         # get the weight and the constraints:
-        self.get_weight()
-        self.get_C()
+        self.get_C(constraint_dict)
+        self.get_weight(weight_dict)
 
         if qutrit:
             raise Exception("Qutrit not yet implemented properly")
 
         # parameter for the absolute value in the MIP problem
-        self.big_M = 1000
+        self.big_M = 5
 
         # definition of the model
         self.model = ConcreteModel()
@@ -59,23 +60,35 @@ class layout_optimizer():
         # declare objective function
         self.declare_objective()
 
-    def get_weight(self):
-        if self.CR_flag:
-            # weight of the objective function are also global parameters
-            self.wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1,
-                       'E4': 1, 'F1': 1, 'F2': 1, 'M1': 1, 'C1': 1}
-        elif self.CZ_flag:
-            self.wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1, 'E4': 1, 'E1t': 1,
-                       'E2t': 1, 'E4t': 1, 'F1': 1, 'F2': 1, 'M1': 1, 'C1': 1, 'C2': 1}
+    def get_weight(self, weight_dict=None):
 
-    def get_C(self):
-        if self.CR_flag:
-            # weight of the objective function are also global parameters
-            self.C = {'A1': 0.017, 'A2i': 0.03, 'A2j': 0.03, 'E1': 0.017, 'E2': 0.03,
-                      'E4': 0.002, 'F1': 0.017, 'F2': 0.025, 'M1': 0.017, 'C1': 0}
-        elif self.CZ_flag:
-            self.C = {'A1': 0.017, 'A2i': 0.03, 'A2j': 0.03, 'E1': 0.017, 'E2': 0.03, 'E4': 0.002,
-                      'E1t': 0.017, 'E2t': 0.03, 'E4t': 0.002, 'F1': 0.017, 'F2': 0.025, 'M1': 0.017, 'C1': 0, 'C2': 0}
+        if weight_dict is not None:
+            self.wC = weight_dict
+        else:
+            self.wC = {key: 1 for key in self.C}
+
+        # if self.CR_flag:
+        #     # weight of the objective function are also global parameters
+        #     self.wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1,
+        #                'E4': 1, 'F1': 1, 'F2': 1, 'M1': 1, 'C1': 1}
+        # elif self.CZ_flag:
+        #     self.wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1, 'E4': 1, 'E1t': 1,
+        #                'E2t': 1, 'E4t': 1, 'F1': 1, 'F2': 1, 'M1': 1, 'C1': 1, 'C2': 1}
+
+    def get_C(self, constraint_dict=None):
+
+        if constraint_dict is not None:
+            self.C = constraint_dict
+
+        # if no constraint dictionnary is supplied we just use the default one
+        else:
+            if self.CR_flag:
+                # weight of the objective function are also global parameters
+                self.C = {'A1': 0.017, 'A2i': 0.03, 'A2j': 0.03, 'E1': 0.017, 'E2': 0.03,
+                          'E4': 0.002, 'F1': 0.017, 'F2': 0.025, 'M1': 0.017, 'C1': 0}
+            elif self.CZ_flag:
+                self.C = {'A1': 0.017, 'A2i': 0.03, 'A2j': 0.03, 'E1': 0.017, 'E2': 0.03, 'E4': 0.002,
+                          'E1t': 0.017, 'E2t': 0.03, 'E4t': 0.002, 'F1': 0.017, 'F2': 0.025, 'M1': 0.017, 'C1': 0, 'C2': 0}
 
     def declare_decision_variables(self):
         """ Declare the variables of the models. Here we have three types of variables: 
@@ -242,7 +255,7 @@ class layout_optimizer():
         results = self.solver.solve(m)
         return results
 
-    def second_pass(self):
+    def second_pass(self, warmstart=True):
         """
         Now remove those linking constraints and place a lower bound on the delta differences
         """
@@ -255,10 +268,10 @@ class layout_optimizer():
             m.tmp_cons_2.add(m.d[c, m.E[1]] - self.C[c] >=
                              best_value_with_deltas_same)
 
-        results = self.solver.solve(m)
+        results = self.solver.solve(m, warmstart=warmstart)
         return results
 
-    def third_pass(self):
+    def third_pass(self, warmstart=True):
         """ Lastly, remove the constraints requiring deltas of each type to be equal on all edges, but provide a lower bound
         """
         m = self.model
@@ -270,7 +283,7 @@ class layout_optimizer():
             for e in m.E:
                 m.last_lbs.add(m.d[c, e] >= value(m.d[c, m.E[1]]))
 
-        results = self.solver.solve(m)
+        results = self.solver.solve(m, warmstart=warmstart)
         # print(value(m.obj))
         return results
 
