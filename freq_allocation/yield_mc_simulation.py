@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 import sys
+import copy
+
+from pyomo.core.base import constraint
 
 global_constraints = {
     'A1':  "abs(freqs[i] - freqs[j]) > d['A1']",
@@ -99,7 +102,7 @@ def functionalize(constr, freqs, alpha, d, drive, qutrit=False):
 # construct the checking functions. This only work for the CR qubit
 
 
-def construct_constraint_function(G, freqs, alpha, drive, d, cstr=None):
+def construct_constraint_function(G, freqs, alpha, drive, d, cstr=None, qutrit=False):
     """ 
     Create the list of functions and index where the constraint are tested.
     Args:
@@ -118,13 +121,34 @@ def construct_constraint_function(G, freqs, alpha, drive, d, cstr=None):
     constraints = [global_constraints[key] for key in cstr]
 
     # Need to be carefull here, the drive are not pertubated when doing the MC search. So the functionalize should not use the drive from the graph when doing the CR but rather use the frequency of the node
+    constraints_archive = copy.deepcopy(constraints)
+    cstr_names = copy.deepcopy(cstr)
+
     if not G.cz:
-        constraints = [c.replace("drive[e]", "freqs[j]") for c in constraints]
+        constraints = [c.replace("drive[e]", "freqs[j]")
+                       for c in constraints_archive]
+    if qutrit:
+        for k, c in enumerate(constraints_archive):
+            if ("drive[e]" in c):
+                cname = cstr_names[k]
+                if cname not in ['C1', 'C1b']:
+
+                    constraints.append(
+                        c.replace("drive[e]", "freqs[j]+alpha[j]"))
+                    idx_list.append(idx_list[k])
+                    cstr_names.append(cstr_names[k])
+                else:
+                    ctemp = c.replace("drive[e]", "freqs[j]+alpha[j]")
+                    constraints.append(ctemp.replace(
+                        "freqs[i]", "freqs[i]+alpha[i]"))
+                    idx_list.append(idx_list[k])
+                    cstr_names.append(cstr_names[k])
 
     expr_list = [functionalize(constr, freqs, alpha, d, drive)
                  for constr in constraints]
 
-    return idx_list, expr_list, cstr
+    print(len(idx_list), len(expr_list), len(cstr_names))
+    return idx_list, expr_list, cstr_names
 
 
 if __name__ == '__main__':

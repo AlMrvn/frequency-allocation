@@ -162,7 +162,8 @@ class FrequencyGraph(nx.DiGraph):
                       sigma: float = 0.05,
                       Nsamples: int = 10000,
                       cstr=None,
-                      reoptimize=False
+                      reoptimize=False,
+                      qutrit=False
                       ):
         """
         Calculate the yield of the FrequencyGraph for a given dispersion in frequency.
@@ -222,7 +223,7 @@ class FrequencyGraph(nx.DiGraph):
             alpha_distribution,
             drive,
             thresholds,
-            cstr=cstr)
+            cstr=cstr, qutrit=qutrit)
 
         # Count the number of collisions
 
