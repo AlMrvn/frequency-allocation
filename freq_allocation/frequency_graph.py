@@ -8,7 +8,8 @@ from freq_allocation.optimization import layout_optimizer
 
 
 class FrequencyGraph(nx.DiGraph):
-    """ Frequency Graph of a given layout. This graph represent the transmon layout. Each node have a frequency and a anharmonicity. Each edge has a drive frequency.
+    """ 
+    Frequency Graph of a given layout. This graph represent the transmon layout. Each node have a frequency and an anharmonicity. Each edge has a drive frequency.
     """
 
     def __init__(self, edges, frequencies=None, anharmonicity=None, f_drive=None, cz=False):
@@ -160,7 +161,6 @@ class FrequencyGraph(nx.DiGraph):
                       thresholds: np.array,
                       sigma: float = 0.05,
                       Nsamples: int = 10000,
-                      qutrit: bool = False,
                       cstr=None,
                       reoptimize=False
                       ):
@@ -222,7 +222,6 @@ class FrequencyGraph(nx.DiGraph):
             alpha_distribution,
             drive,
             thresholds,
-            qutrit=qutrit,
             cstr=cstr)
 
         # Count the number of collisions
@@ -237,7 +236,6 @@ class FrequencyGraph(nx.DiGraph):
 
     def check_solution(self,
                        thresholds: np.array,
-                       qutrit: bool = False,
                        cstr=None
                        ):
         """
@@ -255,7 +253,6 @@ class FrequencyGraph(nx.DiGraph):
             np.array([self.anharmonicity]).T,
             self.drive,
             thresholds,
-            qutrit=qutrit,
             cstr=cstr)
 
         # Count the number of collisions
