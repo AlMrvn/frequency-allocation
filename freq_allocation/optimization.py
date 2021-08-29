@@ -20,6 +20,8 @@ class layout_optimizer():
         if architecture == "CZ":
             self.CR_flag = False
             self.CZ_flag = True
+
+        # Deafault architecture is the CR
         elif architecture is None or architecture == 'CR':
             self.CR_flag = True
             self.CZ_flag = False
@@ -60,20 +62,17 @@ class layout_optimizer():
         # declare objective function
         self.declare_objective()
 
-    def get_weight(self, weight_dict=None):
+    def get_weight(self, weight_dict: dict = None):
+        """Construct the weight dictonnary for the objective function.
+
+        Args:
+            weight_dict (dict, optional): [description]. Defaults to None.
+        """
 
         if weight_dict is not None:
             self.wC = weight_dict
         else:
             self.wC = {key: 1 for key in self.C}
-
-        # if self.CR_flag:
-        #     # weight of the objective function are also global parameters
-        #     self.wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1,
-        #                'E4': 1, 'F1': 1, 'F2': 1, 'M1': 1, 'C1': 1}
-        # elif self.CZ_flag:
-        #     self.wC = {'A1': 1, 'A2i': 1, 'A2j': 1, 'E1': 1, 'E2': 1, 'E4': 1, 'E1t': 1,
-        #                'E2t': 1, 'E4t': 1, 'F1': 1, 'F2': 1, 'M1': 1, 'C1': 1, 'C2': 1}
 
     def get_C(self, constraint_dict=None):
 
