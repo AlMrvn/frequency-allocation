@@ -12,7 +12,7 @@ class FrequencyGraph(nx.DiGraph):
     Frequency Graph of a given layout. This graph represent the transmon layout. Each node have a frequency and an anharmonicity. Each edge has a drive frequency.
     """
 
-    def __init__(self, edges, frequencies=None, anharmonicity=None, f_drive=None, cz=False):
+    def __init__(self, edges, frequencies=None, anharmonicity=None, f_drive=None, cz: bool = False):
         # init the Digraph
         nx.DiGraph.__init__(self)
 
@@ -29,6 +29,7 @@ class FrequencyGraph(nx.DiGraph):
             for e, fd in zip(edges, f_drive):
                 self.edges[e]['drive'] = fd
 
+        # the ac-stark shift architecture is different and thus require an extra parameter
         self.cz = cz
 
     def set_values(self, freqs: dict, anharms: dict, drives: dict = None):
@@ -52,16 +53,29 @@ class FrequencyGraph(nx.DiGraph):
         if not self.cz:
             self.check_cr()
 
-    def plot(self, fig=None, ax=None, pos=None):
-        """ Draw the Graph """
+    def plot(self, fig=None, ax=None, pos: dict = None):
+        """
+        Plot the graph connectivity. Use the pos argument to give a position to the node.
+
+        Args:
+            fig ([type], optional): figure o the plot. Defaults to None.
+            ax ([type], optional): axe of the plot. Defaults to None.
+            pos (dict, optional): Dictionnary of the position of the nodes. Defaults to None.
+        """
+        # the default position are simply given thourg the spring layout
         if pos is None:
             pos = nx.spring_layout(self)
+
         nx.draw(self, with_labels=True,
                 pos=pos, font_weight='bold')
 
-    def check_cr(self, tol=1e-5):
+    def check_cr(self, tol: float = 1e-5):
         """
-        check if the frequency drives are compatible with a CR drive type
+        Check if the frequency drives are compatible with a CR drive type
+
+        Args:
+        tol (float, optional): tolerance when checking that frequency are equal. Defaults to 1e-5
+
         Returns:
             Bool: Return True if the drive of the graph are CR compatible
         """
@@ -77,34 +91,6 @@ class FrequencyGraph(nx.DiGraph):
 
         print("The drive frequency are CR compatible")
         return True
-
-    # def check_constraint(self, thresholds: np.array, verbose=1, qutrit=False):
-    #     """
-    #     Check all the constraint on the graph of solution
-    #     Args:
-    #         thresholds (np.array): threshold associated with the differents constraints.
-    #         verbose (int): if verbose > 0, will print where the constraints are not satisfied
-    #     Returns:
-    #         number_of_error (int) number of non satisfied constraints
-    #     """
-    #     constraints = [type_A1, type_A2, type3, type4, type5, type6, type7]
-    #     if qutrit:
-    #         constraints.extend([type1b, type2b, type2c,
-    #                             type3b, type5b, type6b, type6c])
-
-    #         thresholds = np.concatenate(
-    #             (thresholds, thresholds[np.ix_([0, 1, 1, 2, 4, 5, 5])]))
-    #     res = 0
-
-    #     for c, d in zip(constraints, thresholds):
-
-    #         error = list(c(self, d).keys())
-    #         if error != []:
-
-    #             if verbose > 0:
-    #                 print(f"{c.__name__:<8} (min= {d:.03f} GHz) on {error}")
-    #             res += 1
-    #     return res
 
     @property
     def freqs(self):
@@ -257,7 +243,6 @@ class FrequencyGraph(nx.DiGraph):
             cstr=cstr)
 
         # Count the number of collisions
-
         c = []
         for idx, expr in zip(idx_list, expr_list):
             for i in idx:
