@@ -3,7 +3,7 @@
 /solutions
 /.vscode
 /archive/*
-/archive
+*/archive
 # notebook/pytohn files
 *.pyc
 

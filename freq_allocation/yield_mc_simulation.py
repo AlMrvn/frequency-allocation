@@ -147,7 +147,7 @@ def construct_constraint_function(G, freqs, alpha, drive, d, cstr=None, qutrit=F
     expr_list = [functionalize(constr, freqs, alpha, d, drive)
                  for constr in constraints]
 
-    print(len(idx_list), len(expr_list), len(cstr_names))
+    # print(len(idx_list), len(expr_list), len(cstr_names))
     return idx_list, expr_list, cstr_names
 
 
