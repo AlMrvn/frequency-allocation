@@ -12,13 +12,15 @@ class FrequencyGraph(nx.DiGraph):
     Frequency Graph of a given layout. This graph represent the transmon layout. Each node have a frequency and an anharmonicity. Each edge has a drive frequency.
     """
 
-    def __init__(self, edges, frequencies=None, anharmonicity=None, f_drive=None, cz: bool = False):
-        # init the Digraph
+    def __init__(self, edges, frequencies=None, anharmonicity=None, f_drive=None, architecture: str = None):
+
+        # initialization of the Digraph
         nx.DiGraph.__init__(self)
 
-        # add the nodes to the graph:
+        # add the edges to the graph:
         self.add_edges_from(edges)
 
+        # if there is some set frequency, we can add them
         if (frequencies is not None) and (anharmonicity is not None):
             # add the frequencies. We cannot enumerate the nodes as add_edge changes the order
             for k in range(len(self.nodes)):
@@ -29,8 +31,8 @@ class FrequencyGraph(nx.DiGraph):
             for e, fd in zip(edges, f_drive):
                 self.edges[e]['drive'] = fd
 
-        # the ac-stark shift architecture is different and thus require an extra parameter
-        self.cz = cz
+        # the ac-stark shift architecture is different and thus require an extra parameter. We transform it into a boolean for easiness
+        self.cz = True if architecture == 'CZ' else False
 
     def set_values(self, freqs: dict, anharms: dict, drives: dict = None):
         """
@@ -71,7 +73,8 @@ class FrequencyGraph(nx.DiGraph):
 
     def check_cr(self, tol: float = 1e-5):
         """
-        Check if the frequency drives are compatible with a CR drive type
+        Check if the frequency drives are compatible with a CR drive type.
+        ie check if the orientation of the edge is coherent with the frequencies of the nodes
 
         Args:
         tol (float, optional): tolerance when checking that frequency are equal. Defaults to 1e-5

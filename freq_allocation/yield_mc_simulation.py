@@ -9,8 +9,6 @@ import networkx as nx
 import sys
 import copy
 
-from pyomo.core.base import constraint
-
 global_constraints = {
     'A1':  "abs(freqs[i] - freqs[j]) > d['A1']",
     'A2i': "abs(freqs[i] - freqs[j] - alpha[j]) > d['A2i']",
