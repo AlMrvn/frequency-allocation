@@ -12,7 +12,7 @@ SOLVER_NAME = 'gurobi'  # cplex, glpk, gurobi
 
 
 class layout_optimizer():
-    def __init__(self, graph, architecture=None, qutrit=False, solver_name: str = None, all_differents=False, constraint_dict=None, weight_dict=None) -> None:
+    def __init__(self, graph, architecture: str = None, qutrit: bool = False, solver_name: str = None, all_differents: float = None, constraint_dict: dict = None, weight_dict: dict = None):
 
         # define the solver name
         self.solver_name = solver_name if solver_name is not None else 'glpk'
@@ -55,8 +55,8 @@ class layout_optimizer():
 
         # initialization of the constraints
         self.all_differents = all_differents
-        if all_differents:
-            self.all_frequency_differents()
+        if all_differents is not None:
+            self.all_frequency_differents(all_differents)
         self.declare_constraints()
 
         # declare objective function
@@ -104,10 +104,8 @@ class layout_optimizer():
 
         # decision variables
         m.f = Var(m.N, domain=Reals, bounds=(4.52, 5.98))
-        # m.f  = Var(m.N, domain=Reals, bounds=(4.5, 6))
-        m.a = Var(m.N, domain=Reals, bounds=(-0.27, -0.27))
+        m.a = Var(m.N, domain=Reals, bounds=(-0.30, -0.30))
         # m.a = Var(m.N, domain=Reals, bounds=(-0.35, -0.2))
-        # m.d  = Var(m.C, domain=Reals, bounds=_bounds_rule)
         m.d = Var(m.C, m.E, domain=Reals, bounds=_bounds_rule)
         m.fd = Var(m.E, domain=Reals, bounds=(4.52, 5.98))
 
@@ -207,7 +205,7 @@ class layout_optimizer():
             m.c1.add(-m.fd[i, j] - m.f[k] + 2*m.f[i] + m.a[i] +
                      big_M*(1-m.m1[i, j, k]) >= m.d['M1', (i, j)])
 
-    def all_frequency_differents(self):
+    def all_frequency_differents(self, value=0.01):
 
         m = self.model
         big_M = self.big_M
@@ -218,9 +216,9 @@ class layout_optimizer():
             for j in m.N:
                 if i < j:
                     m.freq_difference.add(
-                        m.f[i] - m.f[j] + big_M*m.sf[i, j] >= 0.001)
+                        m.f[i] - m.f[j] + big_M*m.sf[i, j] >= value)
                     m.freq_difference.add(-m.f[i] + m.f[j] +
-                                          big_M*(1-m.sf[i, j]) >= 0.001)
+                                          big_M*(1-m.sf[i, j]) >= value)
 
     def declare_objective(self):
         """Declare objective function"""

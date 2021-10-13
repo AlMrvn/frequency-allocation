@@ -30,7 +30,12 @@ global_constraints = {
     'F1':  "abs(drive[e] - freqs[k]) > d['F1']",
     'F2':  "abs(drive[e] - freqs[k] - alpha[k]) > d['F2']",
     'F3':  "abs(drive[e] - freqs[k] - 2*alpha[k]) > d['F3']",
-    'M1':  "abs(drive[e] + freqs[k] - 2*freqs[i] - alpha[i]) > d['M1']"
+    'M1':  "abs(drive[e] + freqs[k] - 2*freqs[i] - alpha[i]) > d['M1']",
+    'Z1':  "abs(freqs[i] - freqs[j]) > d['Z1']",
+    'Z2i':  "abs(freqs[i] - freqs[j]-alpha[j]) > d['Z2i']",
+    'Z2j':  "abs(freqs[j] - freqs[i]-alpha[i]) > d['Z2j']",
+    'Z3i':  "abs(freqs[i] - freqs[j]-2*alpha[j]) > d['Z3i']",
+    'Z3j':  "abs(freqs[j] - freqs[i]-2*alpha[i]) > d['Z3j']",
 }
 
 # Todo find a better system. Mayve choose the letter that directly give the type of index
@@ -48,14 +53,19 @@ global_idx_list = {
     'E3t':  "G.oriented_edge_index",
     'E4':   "G.oriented_edge_index",
     'E4t':  "G.oriented_edge_index",
-    'C1':    "G.oriented_edge_index",
-    'C1b':   "G.oriented_edge_index",
-    'C2':    "G.oriented_edge_index",
-    'C2b':   "G.oriented_edge_index",
-    'F1':    "G.cr_neighbhors",
-    'F2':    "G.cr_neighbhors",
-    'F3':    "G.cr_neighbhors",
-    'M1':    "G.cr_neighbhors"
+    'C1':   "G.oriented_edge_index",
+    'C1b':  "G.oriented_edge_index",
+    'C2':   "G.oriented_edge_index",
+    'C2b':  "G.oriented_edge_index",
+    'F1':   "G.cr_neighbhors",
+    'F2':   "G.cr_neighbhors",
+    'F3':   "G.cr_neighbhors",
+    'M1':   "G.cr_neighbhors",
+    "Z1":   "G.edges",
+    "Z2i":  "G.edges",
+    "Z2j":  "G.edges",
+    "Z3i":  "G.edges",
+    "Z3j":  "G.edges",
 }
 
 
@@ -85,7 +95,7 @@ def generate_random_sample(arr: np.array,
     return res
 
 
-def functionalize(constr, freqs, alpha, d, drive, qutrit=False):
+def functionalize(constr, freqs, alpha, d, drive):
     def expr(i, j, k=None):
         return eval(constr, {"freqs": freqs,
                              "alpha": alpha,
@@ -125,6 +135,8 @@ def construct_constraint_function(G, freqs, alpha, drive, d, cstr=None, qutrit=F
     if not G.cz:
         constraints = [c.replace("drive[e]", "freqs[j]")
                        for c in constraints_archive]
+
+    # specific to qutrit yield calculation
     if qutrit:
         for k, c in enumerate(constraints_archive):
             if ("drive[e]" in c):
@@ -145,7 +157,6 @@ def construct_constraint_function(G, freqs, alpha, drive, d, cstr=None, qutrit=F
     expr_list = [functionalize(constr, freqs, alpha, d, drive)
                  for constr in constraints]
 
-    # print(len(idx_list), len(expr_list), len(cstr_names))
     return idx_list, expr_list, cstr_names
 
 
