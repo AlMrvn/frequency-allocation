@@ -1,11 +1,11 @@
 
+from freq_allocation.yield_mc_simulation import *
+from freq_allocation.frequency_graph import FrequencyGraph
 import logging
 import numpy as np
 
 import sys
 sys.path.append("../")
-from freq_allocation.frequency_graph import FrequencyGraph
-from freq_allocation.yield_mc_simulation import *
 
 # silencing pyomo warning
 logging.getLogger('pyomo.core').setLevel(logging.ERROR)
@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     # yield parameters
     Nsamples = 2000  # sample with re-optimization
-    s_vec = np.linspace(0, 0.070, 10)
+    s_vec = np.linspace(0, 0.040, 16)
 
     # Loading the graph
     print("Loading the circuit solution")
