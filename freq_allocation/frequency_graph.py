@@ -226,7 +226,8 @@ class FrequencyGraph(nx.DiGraph):
 
     def check_solution(self,
                        thresholds: np.array,
-                       cstr=None
+                       cstr=None,
+                       verbose=True
                        ):
         """
         Calculate the yield of the FrequencyGraph for a given dispersion in frequency.
@@ -255,9 +256,10 @@ class FrequencyGraph(nx.DiGraph):
         c = np.squeeze(c)
         constraints_flat = [k for constr, idx in zip(
             constraints, idx_list) for k in [constr]*len(idx)]
-        idx_list_flat = [k for k in idx for idx in idx_list]
-        for k in range(len(c)):
-            if not c[k]:
-                print(f"{constraints_flat[k]} at {idx_list_flat[k]}")
+        idx_list_flat = [k for idx in idx_list for k in idx]
+        if verbose:
+            for k in range(len(c)):
+                if not c[k]:
+                    print(f"{constraints_flat[k]} at {idx_list_flat[k]}")
 
-        return all(c)
+        return constraints_flat, idx_list_flat, idx_list, c
