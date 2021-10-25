@@ -227,7 +227,8 @@ class FrequencyGraph(nx.DiGraph):
     def check_solution(self,
                        thresholds: np.array,
                        cstr=None,
-                       verbose=True
+                       verbose=True,
+                       qutrit=False
                        ):
         """
         Calculate the yield of the FrequencyGraph for a given dispersion in frequency.
@@ -244,7 +245,8 @@ class FrequencyGraph(nx.DiGraph):
             np.array([self.anharmonicity]).T,
             self.drive,
             thresholds,
-            cstr=cstr)
+            cstr=cstr,
+            qutrit=qutrit)
 
         # Count the number of collisions
         c = []
@@ -262,4 +264,4 @@ class FrequencyGraph(nx.DiGraph):
                 if not c[k]:
                     print(f"{constraints_flat[k]} at {idx_list_flat[k]}")
 
-        return constraints_flat, idx_list_flat, idx_list, c
+        return constraints_flat, idx_list_flat, c
