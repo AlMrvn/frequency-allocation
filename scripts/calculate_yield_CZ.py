@@ -14,19 +14,26 @@ logging.getLogger('pyomo.core').setLevel(logging.ERROR)
 
 if __name__ == '__main__':
 
+    # fname_list = [
+    #     "heavy_hexagon_CZ_3MHz.npz",
+    #     "hexagon_CZ_3MHz.npz",
+    #     "square_CZ_3MHz.npz",
+    #     "linear_CZ_3MHz.npz",
+    #     "heavy_hexagon_CZ_5MHz.npz",
+    #     "hexagon_CZ_5MHz.npz",
+    #     "square_CZ_5MHz.npz",
+    #     "linear_CZ_5MHz.npz",
+    #     "heavy_hexagon_CZ_10MHz.npz",
+    #     "hexagon_CZ_10MHz.npz",
+    #     "square_CZ_10MHz.npz",
+    #     "linear_CZ_10MHz.npz",
+    # ]
+
     fname_list = [
-        "heavy_hexagon_CZ_3MHz.npz",
-        "hexagon_CZ_3MHz.npz",
-        "square_CZ_3MHz.npz",
-        "linear_CZ_3MHz.npz",
-        "heavy_hexagon_CZ_5MHz.npz",
-        "hexagon_CZ_5MHz.npz",
-        "square_CZ_5MHz.npz",
-        "linear_CZ_5MHz.npz",
-        "heavy_hexagon_CZ_10MHz.npz",
-        "hexagon_CZ_10MHz.npz",
-        "square_CZ_10MHz.npz",
-        "linear_CZ_10MHz.npz",
+        "heavy_hexagon_CZ_nocrosstalk.npz",
+        "hexagon_CZ_nocrosstalk.npz",
+        "square_CZ_nocrosstalk.npz",
+        "linear_CZ_nocrosstalk.npz",
     ]
 
     for fname in fname_list:
